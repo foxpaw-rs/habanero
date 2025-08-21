@@ -23,10 +23,12 @@ use std::collections::HashMap;
 ///
 /// let request = Request::build(Verb::Get, "/")
 ///     .header("Content-Type", "application/json")
+///     .body("{ ... }")
 ///     .create();
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Builder<'a> {
+    body: &'a str,
     headers: HashMap<&'a str, &'a str>,
     target: &'a str,
     verb: Verb,
@@ -39,10 +41,37 @@ impl<'a> Builder<'a> {
     /// builder pattern and build up a `Request`.
     fn new(verb: Verb, target: &'a str) -> Self {
         Builder {
+            body: "",
             headers: HashMap::new(),
             target,
             verb,
         }
+    }
+
+    /// Set a `Request` body.
+    ///
+    /// Set a HTTP body on the `Request`. This will overwrite any previously
+    /// set value for the request body.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::{
+    ///     Request,
+    ///     request::{
+    ///         Builder, Verb
+    ///     }
+    /// };
+    ///
+    /// // Note: The final request body will be "{ ... }".
+    /// let request = Request::build(Verb::Get, "/")
+    ///     .body("<html>...</html>")
+    ///     .body("{ ... }")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn body(mut self, body: &'a str) -> Self {
+        self.body = body;
+        self
     }
 
     /// Create the built `Request`.
@@ -62,11 +91,12 @@ impl<'a> Builder<'a> {
     ///
     /// let request = Request::build(Verb::Get, "/")
     ///     .header("Content-Type", "application/json")
+    ///     .body("{ ... }")
     ///     .create();
     /// ```
     #[must_use]
     pub fn create(self) -> Request<'a> {
-        Request::new(self.verb, self.target, self.headers)
+        Request::new(self.verb, self.target, self.headers, self.body)
     }
 
     /// Set a `Request` header.
@@ -115,10 +145,12 @@ impl<'a> Builder<'a> {
 ///
 /// let request = Request::build(Verb::Get, "/")
 ///     .header("Content-Type", "application/json")
+///     .body("{ ... }")
 ///     .create();
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Request<'a> {
+    body: &'a str,
     headers: HashMap<&'a str, &'a str>,
     target: &'a str,
     verb: Verb,
@@ -129,8 +161,9 @@ impl<'a> Request<'a> {
     ///
     /// Creates a new request, invoked via the `Builder::create` method to
     /// finalise the construction of the `Request`.
-    fn new(verb: Verb, target: &'a str, headers: HashMap<&'a str, &'a str>) -> Self {
+    fn new(verb: Verb, target: &'a str, headers: HashMap<&'a str, &'a str>, body: &'a str) -> Self {
         Self {
+            body,
             headers,
             target,
             verb,
@@ -154,6 +187,7 @@ impl<'a> Request<'a> {
     ///
     /// let request = Request::build(Verb::Get, "/")
     ///     .header("Content-Type", "application/json")
+    ///     .body("{ ... }")
     ///     .create();
     /// ```
     #[must_use]
@@ -190,6 +224,7 @@ mod tests {
     #[test]
     fn builder_new_success() {
         let expected = Builder {
+            body: "",
             headers: HashMap::new(),
             target: "/",
             verb: Verb::Get,
@@ -204,12 +239,32 @@ mod tests {
         headers.insert("key", "value");
 
         let expected = Request {
+            body: "body",
             headers: headers,
             target: "/",
             verb: Verb::Get,
         };
-        let actual = Builder::new(Verb::Get, "/").header("key", "value").create();
+        let actual = Builder::new(Verb::Get, "/")
+            .header("key", "value")
+            .body("body")
+            .create();
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn builder_body_success() {
+        let expected = "body";
+        let actual = Builder::new(Verb::Get, "/").body("body");
+
+        assert_eq!(expected, actual.body);
+    }
+
+    #[test]
+    fn builder_body_overwrite() {
+        let expected = "body";
+        let actual = Builder::new(Verb::Get, "/").body("not_body").body("body");
+
+        assert_eq!(expected, actual.body);
     }
 
     #[test]
@@ -217,7 +272,7 @@ mod tests {
         let mut expected = HashMap::new();
         expected.insert("key", "value");
 
-        let actual = Builder::new(Verb::Get, "/").header("key", "value").create();
+        let actual = Builder::new(Verb::Get, "/").header("key", "value");
 
         assert_eq!(expected, actual.headers);
     }
@@ -229,8 +284,7 @@ mod tests {
 
         let actual = Builder::new(Verb::Get, "/")
             .header("key", "not_value")
-            .header("key", "value")
-            .create();
+            .header("key", "value");
 
         assert_eq!(expected, actual.headers);
     }
@@ -243,12 +297,14 @@ mod tests {
         headers.insert("key", "value");
 
         let expected = Request {
+            body: "body",
             headers: headers,
             target: "/",
             verb: Verb::Get,
         };
         let actual = Request::build(Verb::Get, "/")
             .header("key", "value")
+            .body("body")
             .create();
         assert_eq!(expected, actual);
     }
@@ -256,6 +312,7 @@ mod tests {
     #[test]
     fn request_builder_success() {
         let expected = Builder {
+            body: "",
             headers: HashMap::new(),
             target: "/",
             verb: Verb::Get,
