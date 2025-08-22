@@ -13,15 +13,14 @@ use std::collections::HashMap;
 ///
 /// # Examples
 /// ```rust
-/// // Todo(Paul): Expand this
 /// use habanero::{
 ///     Request,
 ///     request::{
-///         Builder, Verb
+///         Builder, Verb, Version
 ///     }
 /// };
 ///
-/// let request = Request::build(Verb::Get, "/")
+/// let request = Request::build(Verb::Get, "/", Version::Http1_1)
 ///     .header("Content-Type", "application/json")
 ///     .body("{ ... }")
 ///     .create();
@@ -32,6 +31,7 @@ pub struct Builder<'a> {
     headers: HashMap<&'a str, &'a str>,
     target: &'a str,
     verb: Verb,
+    version: Version,
 }
 
 impl<'a> Builder<'a> {
@@ -39,12 +39,13 @@ impl<'a> Builder<'a> {
     ///
     /// Create a new `Builder` via the `Request::build` method to invoke the
     /// builder pattern and build up a `Request`.
-    fn new(verb: Verb, target: &'a str) -> Self {
+    fn new(verb: Verb, target: &'a str, version: Version) -> Self {
         Builder {
             body: "",
             headers: HashMap::new(),
             target,
             verb,
+            version,
         }
     }
 
@@ -58,12 +59,12 @@ impl<'a> Builder<'a> {
     /// use habanero::{
     ///     Request,
     ///     request::{
-    ///         Builder, Verb
+    ///         Builder, Verb, Version
     ///     }
     /// };
     ///
     /// // Note: The final request body will be "{ ... }".
-    /// let request = Request::build(Verb::Get, "/")
+    /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
     ///     .body("<html>...</html>")
     ///     .body("{ ... }")
     ///     .create();
@@ -81,22 +82,27 @@ impl<'a> Builder<'a> {
     ///
     /// # Examples
     /// ```rust
-    /// // Todo(Paul): Expand this
     /// use habanero::{
     ///     Request,
     ///     request::{
-    ///         Builder, Verb
+    ///         Builder, Verb, Version
     ///     }
     /// };
     ///
-    /// let request = Request::build(Verb::Get, "/")
+    /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
     ///     .header("Content-Type", "application/json")
     ///     .body("{ ... }")
     ///     .create();
     /// ```
     #[must_use]
     pub fn create(self) -> Request<'a> {
-        Request::new(self.verb, self.target, self.headers, self.body)
+        Request::new(
+            self.verb,
+            self.target,
+            self.version,
+            self.headers,
+            self.body,
+        )
     }
 
     /// Set a `Request` header.
@@ -109,12 +115,12 @@ impl<'a> Builder<'a> {
     /// use habanero::{
     ///     Request,
     ///     request::{
-    ///         Builder, Verb
+    ///         Builder, Verb, Version
     ///     }
     /// };
     ///
     /// // Note: The final "Content-Type" header will be "application/html".
-    /// let request = Request::build(Verb::Get, "/")
+    /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
     ///     .header("Content-Type", "application/json")
     ///     .header("Content-Type", "application/html")
     ///     .create();
@@ -135,15 +141,14 @@ impl<'a> Builder<'a> {
 ///
 /// # Examples
 /// ```rust
-/// // Todo(Paul): Expand this
 /// use habanero::{
 ///     Request,
 ///     request::{
-///         Builder, Verb
+///         Builder, Verb, Version
 ///     }
 /// };
 ///
-/// let request = Request::build(Verb::Get, "/")
+/// let request = Request::build(Verb::Get, "/", Version::Http1_1)
 ///     .header("Content-Type", "application/json")
 ///     .body("{ ... }")
 ///     .create();
@@ -154,6 +159,7 @@ pub struct Request<'a> {
     headers: HashMap<&'a str, &'a str>,
     target: &'a str,
     verb: Verb,
+    version: Version,
 }
 
 impl<'a> Request<'a> {
@@ -161,12 +167,19 @@ impl<'a> Request<'a> {
     ///
     /// Creates a new request, invoked via the `Builder::create` method to
     /// finalise the construction of the `Request`.
-    fn new(verb: Verb, target: &'a str, headers: HashMap<&'a str, &'a str>, body: &'a str) -> Self {
+    fn new(
+        verb: Verb,
+        target: &'a str,
+        version: Version,
+        headers: HashMap<&'a str, &'a str>,
+        body: &'a str,
+    ) -> Self {
         Self {
             body,
             headers,
             target,
             verb,
+            version,
         }
     }
 
@@ -177,28 +190,27 @@ impl<'a> Request<'a> {
     ///
     /// # Examples
     /// ```rust
-    /// // Todo(Paul): Expand this
     /// use habanero::{
     ///     Request,
     ///     request::{
-    ///         Builder, Verb
+    ///         Builder, Verb, Version
     ///     }
     /// };
     ///
-    /// let request = Request::build(Verb::Get, "/")
+    /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
     ///     .header("Content-Type", "application/json")
     ///     .body("{ ... }")
     ///     .create();
     /// ```
     #[must_use]
-    pub fn build(verb: Verb, target: &'a str) -> Builder<'a> {
-        Builder::new(verb, target)
+    pub fn build(verb: Verb, target: &'a str, version: Version) -> Builder<'a> {
+        Builder::new(verb, target, version)
     }
 }
 
 /// The HTTP Verbs
 ///
-/// Representation of the avaiable HTTP verbs, or methods, which are sent via
+/// Representation of the supported HTTP verbs, or methods, which are sent via
 /// the HTTP request.
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 #[non_exhaustive]
@@ -212,6 +224,16 @@ pub enum Verb {
     Post,
     Put,
     Trace,
+}
+
+/// The HTTP Versions
+///
+/// Representation of the supported HTTP versions, which are sent via the HTTP
+/// request.
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+#[non_exhaustive]
+pub enum Version {
+    Http1_1,
 }
 
 #[cfg(test)]
@@ -228,8 +250,9 @@ mod tests {
             headers: HashMap::new(),
             target: "/",
             verb: Verb::Get,
+            version: Version::Http1_1,
         };
-        let actual = Builder::new(Verb::Get, "/");
+        let actual = Builder::new(Verb::Get, "/", Version::Http1_1);
         assert_eq!(expected, actual);
     }
 
@@ -243,8 +266,9 @@ mod tests {
             headers: headers,
             target: "/",
             verb: Verb::Get,
+            version: Version::Http1_1,
         };
-        let actual = Builder::new(Verb::Get, "/")
+        let actual = Builder::new(Verb::Get, "/", Version::Http1_1)
             .header("key", "value")
             .body("body")
             .create();
@@ -254,7 +278,7 @@ mod tests {
     #[test]
     fn builder_body_success() {
         let expected = "body";
-        let actual = Builder::new(Verb::Get, "/").body("body");
+        let actual = Builder::new(Verb::Get, "/", Version::Http1_1).body("body");
 
         assert_eq!(expected, actual.body);
     }
@@ -262,7 +286,9 @@ mod tests {
     #[test]
     fn builder_body_overwrite() {
         let expected = "body";
-        let actual = Builder::new(Verb::Get, "/").body("not_body").body("body");
+        let actual = Builder::new(Verb::Get, "/", Version::Http1_1)
+            .body("not_body")
+            .body("body");
 
         assert_eq!(expected, actual.body);
     }
@@ -272,7 +298,7 @@ mod tests {
         let mut expected = HashMap::new();
         expected.insert("key", "value");
 
-        let actual = Builder::new(Verb::Get, "/").header("key", "value");
+        let actual = Builder::new(Verb::Get, "/", Version::Http1_1).header("key", "value");
 
         assert_eq!(expected, actual.headers);
     }
@@ -282,7 +308,7 @@ mod tests {
         let mut expected = HashMap::new();
         expected.insert("key", "value");
 
-        let actual = Builder::new(Verb::Get, "/")
+        let actual = Builder::new(Verb::Get, "/", Version::Http1_1)
             .header("key", "not_value")
             .header("key", "value");
 
@@ -301,8 +327,9 @@ mod tests {
             headers: headers,
             target: "/",
             verb: Verb::Get,
+            version: Version::Http1_1,
         };
-        let actual = Request::build(Verb::Get, "/")
+        let actual = Request::build(Verb::Get, "/", Version::Http1_1)
             .header("key", "value")
             .body("body")
             .create();
@@ -316,8 +343,9 @@ mod tests {
             headers: HashMap::new(),
             target: "/",
             verb: Verb::Get,
+            version: Version::Http1_1,
         };
-        let actual = Request::build(Verb::Get, "/");
+        let actual = Request::build(Verb::Get, "/", Version::Http1_1);
         assert_eq!(expected, actual);
     }
 }
