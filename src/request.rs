@@ -1,7 +1,8 @@
 //! Request
 //! Todo(Paul): Module documentation
 
-use std::collections::HashMap;
+use core::fmt::{self, Debug, Display, Formatter};
+use std::collections::BTreeMap;
 
 /// HTTP Request Builder.
 ///
@@ -28,7 +29,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Builder<'a> {
     body: &'a str,
-    headers: HashMap<&'a str, &'a str>,
+    headers: BTreeMap<&'a str, &'a str>,
     target: &'a str,
     verb: Verb,
     version: Version,
@@ -42,7 +43,7 @@ impl<'a> Builder<'a> {
     fn new(verb: Verb, target: &'a str, version: Version) -> Self {
         Builder {
             body: "",
-            headers: HashMap::new(),
+            headers: BTreeMap::new(),
             target,
             verb,
             version,
@@ -62,6 +63,7 @@ impl<'a> Builder<'a> {
     ///         Builder, Verb, Version
     ///     }
     /// };
+    /// // Or use habanero::request::*;
     ///
     /// // Note: The final request body will be "{ ... }".
     /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
@@ -88,6 +90,7 @@ impl<'a> Builder<'a> {
     ///         Builder, Verb, Version
     ///     }
     /// };
+    /// // Or use habanero::request::*;
     ///
     /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
     ///     .header("Content-Type", "application/json")
@@ -118,6 +121,7 @@ impl<'a> Builder<'a> {
     ///         Builder, Verb, Version
     ///     }
     /// };
+    /// // Or use habanero::request::*;
     ///
     /// // Note: The final "Content-Type" header will be "application/html".
     /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
@@ -156,7 +160,7 @@ impl<'a> Builder<'a> {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Request<'a> {
     body: &'a str,
-    headers: HashMap<&'a str, &'a str>,
+    headers: BTreeMap<&'a str, &'a str>,
     target: &'a str,
     verb: Verb,
     version: Version,
@@ -171,7 +175,7 @@ impl<'a> Request<'a> {
         verb: Verb,
         target: &'a str,
         version: Version,
-        headers: HashMap<&'a str, &'a str>,
+        headers: BTreeMap<&'a str, &'a str>,
         body: &'a str,
     ) -> Self {
         Self {
@@ -196,6 +200,7 @@ impl<'a> Request<'a> {
     ///         Builder, Verb, Version
     ///     }
     /// };
+    /// // Or use habanero::request::*;
     ///
     /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
     ///     .header("Content-Type", "application/json")
@@ -205,6 +210,43 @@ impl<'a> Request<'a> {
     #[must_use]
     pub fn build(verb: Verb, target: &'a str, version: Version) -> Builder<'a> {
         Builder::new(verb, target, version)
+    }
+}
+
+impl Display for Request<'_> {
+    /// Format the `Request`.
+    ///
+    /// Formats the `Request` into an HTTP compatible request format, able to
+    /// be sent to a server.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::{
+    ///     Request,
+    ///     request::{
+    ///         Builder, Verb, Version
+    ///     }
+    /// };
+    /// // Or use habanero::request::*;
+    ///
+    /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
+    ///     .header("Content-Type", "application/json")
+    ///     .body("{ ... }")
+    ///     .create();
+    /// let string = request.to_string();
+    /// ```
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} {} {}\n{}\n{}",
+            self.verb,
+            self.target,
+            self.version,
+            self.headers.iter().fold(String::new(), |fold, pair| {
+                format!("{fold}{}: {}\n", pair.0, pair.1)
+            }),
+            self.body
+        )
     }
 }
 
@@ -226,6 +268,23 @@ pub enum Verb {
     Trace,
 }
 
+impl Display for Verb {
+    /// Format the `Verb`.
+    ///
+    /// Formats the `Verb` into what would be expected for an HTTP request.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::Verb;
+    ///
+    /// let verb = Verb::Connect;
+    /// let string = verb.to_string();
+    /// ```
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.write_str(&format!("{self:?}").to_uppercase())
+    }
+}
+
 /// The HTTP Versions
 ///
 /// Representation of the supported HTTP versions, which are sent via the HTTP
@@ -234,6 +293,25 @@ pub enum Verb {
 #[non_exhaustive]
 pub enum Version {
     Http1_1,
+}
+
+impl Display for Version {
+    /// Format the `Version`.
+    ///
+    /// Formats the `Version` into what would be expected for an HTTP request.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::Version;
+    ///
+    /// let version = Version::Http1_1;
+    /// let string = version.to_string();
+    /// ```
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.write_str(match self {
+            Version::Http1_1 => "HTTP/1.1",
+        })
+    }
 }
 
 #[cfg(test)]
@@ -247,7 +325,7 @@ mod tests {
     fn builder_new_success() {
         let expected = Builder {
             body: "",
-            headers: HashMap::new(),
+            headers: BTreeMap::new(),
             target: "/",
             verb: Verb::Get,
             version: Version::Http1_1,
@@ -258,7 +336,7 @@ mod tests {
 
     #[test]
     fn builder_create_success() {
-        let mut headers = HashMap::new();
+        let mut headers = BTreeMap::new();
         headers.insert("key", "value");
 
         let expected = Request {
@@ -295,7 +373,7 @@ mod tests {
 
     #[test]
     fn builder_header_success() {
-        let mut expected = HashMap::new();
+        let mut expected = BTreeMap::new();
         expected.insert("key", "value");
 
         let actual = Builder::new(Verb::Get, "/", Version::Http1_1).header("key", "value");
@@ -305,7 +383,7 @@ mod tests {
 
     #[test]
     fn builder_header_overwrite() {
-        let mut expected = HashMap::new();
+        let mut expected = BTreeMap::new();
         expected.insert("key", "value");
 
         let actual = Builder::new(Verb::Get, "/", Version::Http1_1)
@@ -319,7 +397,7 @@ mod tests {
 
     #[test]
     fn request_new_success() {
-        let mut headers = HashMap::new();
+        let mut headers = BTreeMap::new();
         headers.insert("key", "value");
 
         let expected = Request {
@@ -340,12 +418,50 @@ mod tests {
     fn request_builder_success() {
         let expected = Builder {
             body: "",
-            headers: HashMap::new(),
+            headers: BTreeMap::new(),
             target: "/",
             verb: Verb::Get,
             version: Version::Http1_1,
         };
         let actual = Request::build(Verb::Get, "/", Version::Http1_1);
+        assert_eq!(expected, actual);
+    }
+
+    // impl Display for Request
+
+    #[test]
+    fn request_fmt_success() {
+        let expected = "\
+        GET / HTTP/1.1\n\
+        Content-Length: 16\n\
+        Content-Type: application/json\n\n\
+        {\"key\": \"value\"}";
+
+        let actual = Request::build(Verb::Get, "/", Version::Http1_1)
+            .header("Content-Type", "application/json")
+            .header("Content-Length", "16")
+            .body("{\"key\": \"value\"}")
+            .create()
+            .to_string();
+
+        assert_eq!(expected, actual);
+    }
+
+    // impl Display for Verb
+
+    #[test]
+    fn verb_fmt_success() {
+        let expected = "CONNECT";
+        let actual = Verb::Connect.to_string();
+        assert_eq!(expected, actual);
+    }
+
+    // impl Display for Version
+
+    #[test]
+    fn version_fmt_success() {
+        let expected = "HTTP/1.1";
+        let actual = Version::Http1_1.to_string();
         assert_eq!(expected, actual);
     }
 }
