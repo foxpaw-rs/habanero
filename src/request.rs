@@ -1,5 +1,63 @@
-//! Request
-//! Todo(Paul): Module documentation
+//! HTTP requests.
+//! Brief description of request module
+//!
+//! # Request format
+//! As an HTTP request format has a number of optional fields, a `Request` is
+//! initially built via a `Builder`. This allows for the addition of the
+//! optional fields without requiring the `Request` to be mutable at any point.
+//!
+//! The HTTP request format requires a verb, path and version. Headers and the
+//! request body are optional. For example both the following are valid HTTP
+//! requests.
+//! ```text
+//! // Missing headers and a request body.
+//! GET / HTTP/1.1
+//!
+//! // Providing headers and a request body.
+//! POST /user HTTP/1.1
+//! Content-Type: application/json
+//! Content-Length: 35
+//!
+//! {
+//!     "name": "John Doe",
+//!     "age": 50
+//! }
+//! ```
+//!
+//! As the verb, path and version are all required, they must be initially
+//! passed to the build method on `Request`. Headers and a request body can
+//! then be added by calling the relevant methods on the `Builder`. The same
+//! requests above would be constructed as so.
+//!
+//! ```
+//! use habanero::request::*;
+//! # fn main() {
+//! // Missing headers and a request body.
+//! Request::build(Verb::Get, "/", Version::Http1_1).create();
+//!
+//! // Providing headers and a request body.
+//! Request::build(Verb::Post, "/user", Version::Http1_1)
+//!     .header("Content-Type", "application/json")
+//!     .header("Content-Length", "31")
+//!     .body("{\"name\": \"John Doe\", \"age\": 50}")
+//!     .create();
+//! # }
+//! ```
+//!
+//! # Examples
+//!
+//! Creating a `Request`.
+//! ```rust
+//! use habanero::request::*;
+//!
+//! # fn main() {
+//! let request = Request::build(Verb::Get, "/", Version::Http1_1)
+//!     .header("Content-Type", "application/json")
+//!     .header("Content-Length", "7")
+//!     .body("{ ... }")
+//!     .create();
+//! # }
+//! ```
 
 use core::fmt::{self, Debug, Display, Formatter};
 use std::collections::BTreeMap;
@@ -20,6 +78,7 @@ use std::collections::BTreeMap;
 ///         Builder, Verb, Version
 ///     }
 /// };
+/// // Or use habanero::request::*;
 ///
 /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
 ///     .header("Content-Type", "application/json")
@@ -151,6 +210,7 @@ impl<'a> Builder<'a> {
 ///         Builder, Verb, Version
 ///     }
 /// };
+/// // Or use habanero::request::*;
 ///
 /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
 ///     .header("Content-Type", "application/json")

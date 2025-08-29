@@ -4,7 +4,7 @@
 //! Todo(Paul): Library documentation
 
 #[deny(
-    // TODO(Paul): Uncomment when the cargo.toml file is finished.
+    // Todo(Paul): Uncomment when the cargo.toml file is finished.
     // clippy::cargo,
     clippy::complexity,
     clippy::correctness,
