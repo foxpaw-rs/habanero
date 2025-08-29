@@ -1,5 +1,4 @@
 //! HTTP requests.
-//! Brief description of request module
 //!
 //! # Request format
 //! As an HTTP request format has a number of optional fields, a `Request` is
