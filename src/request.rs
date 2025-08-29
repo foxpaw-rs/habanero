@@ -58,6 +58,7 @@
 //! # }
 //! ```
 
+pub use crate::http::Version;
 use core::fmt::{self, Debug, Display, Formatter};
 use std::collections::BTreeMap;
 
@@ -309,7 +310,7 @@ impl Display for Request<'_> {
     }
 }
 
-/// The HTTP Verbs
+/// The HTTP Verbs.
 ///
 /// Representation of the supported HTTP verbs, or methods, which are sent via
 /// the HTTP request.
@@ -341,35 +342,6 @@ impl Display for Verb {
     /// ```
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.write_str(&format!("{self:?}").to_uppercase())
-    }
-}
-
-/// The HTTP Versions
-///
-/// Representation of the supported HTTP versions, which are sent via the HTTP
-/// request.
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
-#[non_exhaustive]
-pub enum Version {
-    Http1_1,
-}
-
-impl Display for Version {
-    /// Format the `Version`.
-    ///
-    /// Formats the `Version` into what would be expected for an HTTP request.
-    ///
-    /// # Examples
-    /// ```rust
-    /// use habanero::request::Version;
-    ///
-    /// let version = Version::Http1_1;
-    /// let string = version.to_string();
-    /// ```
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.write_str(match self {
-            Version::Http1_1 => "HTTP/1.1",
-        })
     }
 }
 
@@ -512,15 +484,6 @@ mod tests {
     fn verb_fmt_success() {
         let expected = "CONNECT";
         let actual = Verb::Connect.to_string();
-        assert_eq!(expected, actual);
-    }
-
-    // impl Display for Version
-
-    #[test]
-    fn version_fmt_success() {
-        let expected = "HTTP/1.1";
-        let actual = Version::Http1_1.to_string();
         assert_eq!(expected, actual);
     }
 }

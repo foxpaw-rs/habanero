@@ -13,6 +13,7 @@
     clippy::style,
     clippy::suspicious,
 )]
+pub mod http;
 pub mod request;
 
-pub use request::{Request, Verb};
+pub use request::Request;
