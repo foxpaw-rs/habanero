@@ -446,7 +446,7 @@ mod tests {
     }
 
     #[test]
-    fn request_builder_success() {
+    fn request_build_success() {
         let expected = Builder {
             body: "",
             headers: BTreeMap::new(),
