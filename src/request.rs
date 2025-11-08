@@ -2,6 +2,7 @@
 //! Todo(Paul): Module documentation.
 
 pub use crate::http::Version;
+use std::collections::BTreeMap;
 
 /// HTTP Request Builder.
 ///
@@ -15,6 +16,8 @@ pub use crate::http::Version;
 /// Todo(Paul): Examples once completed.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Builder {
+    body: String,
+    headers: BTreeMap<String, String>,
     target: String,
     verb: Verb,
     version: Version,
@@ -27,10 +30,37 @@ impl Builder {
     /// builder pattern and build up a `Request`.
     fn new(verb: Verb, target: impl Into<String>, version: Version) -> Self {
         Self {
+            body: String::new(),
+            headers: BTreeMap::new(),
             target: target.into(),
             verb,
             version,
         }
+    }
+
+    /// Set a `Request` body.
+    ///
+    /// Set a HTTP body on the `Request`. This will overwrite any previously
+    /// set value for the request body.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::*;
+    /// // Or use habanero::{
+    /// //     Request,
+    /// //     request::{Builder, Verb, Version}
+    /// // };
+    ///
+    /// // Note: The final request body will be "{ ... }".
+    /// let request = Request::build(Verb::Post, "/", Version::Http1_1)
+    ///     .body("<html>...</html>")
+    ///     .body("{ ... }")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn body(mut self, body: impl Into<String>) -> Self {
+        self.body = body.into();
+        self
     }
 
     /// Create the built `Request`.
@@ -48,11 +78,38 @@ impl Builder {
     /// // };
     ///
     /// let request = Request::build(Verb::Post, "/", Version::Http1_1)
+    ///     .header("Content-Type", "application/json")
+    ///     .body("{ ... }")
     ///     .create();
     /// ```
     #[must_use]
     pub fn create(self) -> Request {
-        Request::new(self.verb, self.target, self.version)
+        Request::new(self.verb, self.target, self.version, self.headers, self.body)
+    }
+
+    /// Set a `Request` header.
+    ///
+    /// Set a HTTP header on the `Request`. This will overwrite any previously
+    /// set value for that header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::*;
+    /// // Or use habanero::{
+    /// //     Request,
+    /// //     request::{Builder, Verb, Version}
+    /// // };
+    ///
+    /// // Note: The final "Content-Type" header will be "text/html".
+    /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
+    ///     .header("Content-Type", "application/json")
+    ///     .header("Content-Type", "text/html")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.headers.insert(key.into(), value.into());
+        self
     }
 }
 
@@ -67,6 +124,8 @@ impl Builder {
 /// Todo(Paul): Examples once completed.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Request {
+    body: String,
+    headers: BTreeMap<String, String>,
     target: String,
     verb: Verb,
     version: Version,
@@ -77,8 +136,12 @@ impl Request {
     ///
     /// Creates a new request, invoked via the `Builder::create` method to
     /// finalise the construction of the `Request`.
-    fn new(verb: Verb, target: String, version: Version) -> Self {
+    fn new(verb: Verb, target: String, version: Version,
+        headers: BTreeMap<String, String>,
+        body: String,) -> Self {
         Self {
+            body,
+            headers,
             target,
             verb,
             version,
@@ -91,7 +154,6 @@ impl Request {
     /// created using the builder pattern.
     ///
     /// # Examples
-    /// Todo(Paul): Add headers/body once implemented.
     /// ```rust
     /// use habanero::request::*;
     /// // Or use habanero::{
@@ -100,6 +162,8 @@ impl Request {
     /// // };
     ///
     /// let request = Request::build(Verb::Post, "/", Version::Http1_1)
+    ///     .header("Content-Type", "application/json")
+    ///     .body("{ ... }")
     ///     .create();
     /// ```
     #[must_use]
@@ -134,9 +198,10 @@ mod tests {
     // impl Builder
 
     #[test]
-    // Todo(Paul): Add headers/body once implemented.
     fn builder_new_success() {
         let expected = Builder {
+            body: "".to_string(),
+            headers: BTreeMap::new(),
             target: "/".to_string(),
             verb: Verb::Get,
             version: Version::Http1_1,
@@ -146,35 +211,93 @@ mod tests {
     }
 
     #[test]
-    // Todo(Paul): Add headers/body once implemented.
+    fn builder_body_success() {
+        let expected = "body";
+        let actual = Builder::new(Verb::Post, "/", Version::Http1_1).body("body");
+
+        assert_eq!(expected, actual.body);
+    }
+
+    #[test]
+    fn builder_body_overwrite() {
+        let expected = "body";
+        let actual = Builder::new(Verb::Post, "/", Version::Http1_1)
+            .body("not_body")
+            .body("body");
+
+        assert_eq!(expected, actual.body);
+    }
+
+    #[test]
     fn builder_create_success() {
+        let mut headers = BTreeMap::new();
+        headers.insert("key".to_string(), "value".to_string());
+
         let expected = Request {
+            body: "body".to_string(),
+            headers: headers,
             target: "/".to_string(),
             verb: Verb::Post,
             version: Version::Http1_1,
         };
-        let actual = Builder::new(Verb::Post, "/", Version::Http1_1).create();
+        let actual = Builder::new(Verb::Post, "/", Version::Http1_1)
+            .header("key", "value")
+            .body("body")
+            .create();
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn builder_header_success() {
+        let mut expected = BTreeMap::new();
+        expected.insert("key".to_string(), "value".to_string());
+
+        let actual = Builder::new(Verb::Get, "/", Version::Http1_1).header("key", "value");
+
+        assert_eq!(expected, actual.headers);
+    }
+
+    #[test]
+    fn builder_header_overwrite() {
+        let mut expected = BTreeMap::new();
+        expected.insert("key".to_string(), "value".to_string());
+
+        let actual = Builder::new(Verb::Get, "/", Version::Http1_1)
+            .header("key", "not_value")
+            .header("key", "value");
+
+        assert_eq!(expected, actual.headers);
     }
 
     // impl Request
 
     #[test]
-    // Todo(Paul): Add headers/body once implemented.
     fn request_new_success() {
+        let mut headers = BTreeMap::new();
+        headers.insert("key".to_string(), "value".to_string());
+
         let expected = Request {
+            body: "body".to_string(),
+            headers: headers.clone(),
             target: "/".to_string(),
             verb: Verb::Post,
             version: Version::Http1_1,
         };
-        let actual = Request::new(Verb::Post, "/".to_string(), Version::Http1_1);
+        let actual = Request::new(
+            Verb::Post,
+            "/".to_string(),
+            Version::Http1_1,
+            headers,
+            "body".to_string(),
+        );
         assert_eq!(expected, actual);
     }
 
     #[test]
-    // Todo(Paul): Add headers/body once implemented.
     fn request_build_success() {
         let expected = Builder {
+            body: "".to_string(),
+            headers: BTreeMap::new(),
             target: "/".to_string(),
             verb: Verb::Get,
             version: Version::Http1_1,
