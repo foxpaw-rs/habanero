@@ -13,7 +13,41 @@ use std::collections::BTreeMap;
 /// same set of information, the `Builder` should be cloned.
 ///
 /// # Examples
-/// Todo(Paul): Examples once completed.
+///
+/// ## Sending a typed body request
+/// This will set the Content-Type and Content-Length headers automatically.
+/// ```rust
+/// use habanero::request::*;
+/// // Or use habanero::{
+/// //     Request,
+/// //     request::{Builder, Verb, Version}
+/// // };
+///
+/// let json = Request::build(Verb::Post, "/", Version::Http1_1)
+///     .json("{ ... }")
+///     .create();
+///  
+/// let url = Request::build(Verb::Post, "/", Version::Http1_1)
+///     .url_encoded("name=MyName&email=test%40test.com")
+///     .create();
+///  
+/// ```
+///
+/// ## Creating a basic body request
+/// This will leave setting the Content-Type and Content-Length headers
+/// appropriately to the implementer, if desired.
+/// ```rust
+/// use habanero::request::*;
+/// // Or use habanero::{
+/// //     Request,
+/// //     request::{Builder, Verb, Version}
+/// // };
+///
+/// let request = Request::build(Verb::Post, "/", Version::Http1_1)
+///     .header("Content-Type", "application/json")
+///     .body("{ ... }")
+///     .create();
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Builder {
     body: String,
@@ -53,7 +87,7 @@ impl Builder {
     ///
     /// // Note: The final request body will be "{ ... }".
     /// let request = Request::build(Verb::Post, "/", Version::Http1_1)
-    ///     .body("<html>...</html>")
+    ///     .body("Hello World")
     ///     .body("{ ... }")
     ///     .create();
     /// ```
@@ -69,7 +103,6 @@ impl Builder {
     /// creating the built `Request`.
     ///
     /// # Examples
-    /// Todo(Paul): Add headers/body once implemented.
     /// ```rust
     /// use habanero::request::*;
     /// // Or use habanero::{
@@ -84,7 +117,13 @@ impl Builder {
     /// ```
     #[must_use]
     pub fn create(self) -> Request {
-        Request::new(self.verb, self.target, self.version, self.headers, self.body)
+        Request::new(
+            self.verb,
+            self.target,
+            self.version,
+            self.headers,
+            self.body,
+        )
     }
 
     /// Set a `Request` header.
@@ -111,6 +150,62 @@ impl Builder {
         self.headers.insert(key.into(), value.into());
         self
     }
+
+    /// Set a `Request` JSON body.
+    ///
+    /// Set a JSON HTTP body on the `Request`. This will overwrite any
+    /// previously set value for the request body, Content-Type header and
+    /// Content-Length header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::*;
+    /// // Or use habanero::{
+    /// //     Request,
+    /// //     request::{Builder, Verb, Version}
+    /// // };
+    ///
+    /// let request = Request::build(Verb::Post, "/", Version::Http1_1)
+    ///     .json("{ ... }")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn json(mut self, body: impl Into<String>) -> Self {
+        let body = body.into();
+        let len = body.len().to_string();
+
+        self.body = body;
+        self.header("Content-Type", "application/json")
+            .header("Content-Length", len)
+    }
+
+    /// Set a `Request` url encoded body.
+    ///
+    /// Set a url encoded HTTP body on the `Request`. This will overwrite any
+    /// previously set value for the request body, Content-Type header and
+    /// Content-Length header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::*;
+    /// // Or use habanero::{
+    /// //     Request,
+    /// //     request::{Builder, Verb, Version}
+    /// // };
+    ///
+    /// let request = Request::build(Verb::Post, "/", Version::Http1_1)
+    ///     .url_encoded("name=MyName&email=test%40test.com")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn url_encoded(mut self, body: impl Into<String>) -> Self {
+        let body = body.into();
+        let len = body.len().to_string();
+
+        self.body = body;
+        self.header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Content-Length", len)
+    }
 }
 
 /// A HTTP Request.
@@ -121,7 +216,18 @@ impl Builder {
 /// information required to be contained within each `Request`.
 ///
 /// # Examples
-/// Todo(Paul): Examples once completed.
+/// ```rust
+/// use habanero::request::*;
+/// // Or use habanero::{
+/// //     Request,
+/// //     request::{Builder, Verb, Version}
+/// // };
+///
+/// let request = Request::build(Verb::Post, "/", Version::Http1_1)
+///     .header("Content-Type", "application/json")
+///     .body("{ ... }")
+///     .create();
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Request {
     body: String,
@@ -136,9 +242,13 @@ impl Request {
     ///
     /// Creates a new request, invoked via the `Builder::create` method to
     /// finalise the construction of the `Request`.
-    fn new(verb: Verb, target: String, version: Version,
+    fn new(
+        verb: Verb,
+        target: String,
+        version: Version,
         headers: BTreeMap<String, String>,
-        body: String,) -> Self {
+        body: String,
+    ) -> Self {
         Self {
             body,
             headers,
@@ -267,6 +377,27 @@ mod tests {
             .header("key", "value");
 
         assert_eq!(expected, actual.headers);
+    }
+
+    #[test]
+    fn builder_json_success() {
+        let actual = Builder::new(Verb::Post, "/", Version::Http1_1).json("{ ... }");
+        let expected = Builder::new(Verb::Post, "/", Version::Http1_1)
+            .body("{ ... }")
+            .header("Content-Type", "application/json")
+            .header("Content-Length", "7");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn builder_url_encoded_success() {
+        let actual = Builder::new(Verb::Post, "/", Version::Http1_1)
+            .url_encoded("name=MyName&email=test%40test.com");
+        let expected = Builder::new(Verb::Post, "/", Version::Http1_1)
+            .body("name=MyName&email=test%40test.com")
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Content-Length", "33");
+        assert_eq!(expected, actual);
     }
 
     // impl Request
