@@ -258,6 +258,27 @@ impl Request {
         }
     }
 
+    /// Retrieve the Request body
+    ///
+    /// Retrieve an immutable reference to the body stored in the Request.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::*;
+    /// // Or use habanero::{
+    /// //     Request,
+    /// //     request::{Builder, Verb, Version}
+    /// // }
+    ///
+    /// let request = Request::build(Verb::Post, "/", Version::Http1_1)
+    ///     .body("<html>...</html>")
+    ///     .create();
+    /// let body = request.body();
+    /// ```
+    pub fn body(&self) -> &str {
+        &self.body
+    }
+
     /// Build a new `Request`.
     ///
     /// Creates a `Builder`, used to construct the `Request`. `Requests` are
@@ -279,6 +300,110 @@ impl Request {
     #[must_use]
     pub fn build(verb: Verb, target: impl Into<String>, version: Version) -> Builder {
         Builder::new(verb, target, version)
+    }
+
+    /// Retrieve the specified Request header
+    ///
+    /// Retrieve an immutable reference to the specified header stored in the
+    /// Request. Will either return the header value or None if the header is
+    /// not set.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::*;
+    /// // Or use habanero::{
+    /// //     Request,
+    /// //     request::{Builder, Verb, Version}
+    /// // }
+    ///
+    /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
+    ///     .header("Content-Type", "text/html")
+    ///     .create();
+    /// let header = request.header("Content-Type");
+    /// ```
+    pub fn header(&self, key: impl Into<String>) -> Option<&str> {
+        self.headers.get(&key.into()).map(|value| value.as_str())
+    }
+
+    /// Retrieve the Request headers
+    ///
+    /// Retrieve an immutable reference to the headers stored in the Request.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::*;
+    /// // Or use habanero::{
+    /// //     Request,
+    /// //     request::{Builder, Verb, Version}
+    /// // }
+    ///
+    /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
+    ///     .header("Content-Type", "text/html")
+    ///     .create();
+    /// let headers = request.headers();
+    /// ```
+    pub fn headers(&self) -> &BTreeMap<String, String> {
+        &self.headers
+    }
+
+    /// Retrieve the Request target
+    ///
+    /// Retrieve an immutable reference to the target stored in the Request.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::*;
+    /// // Or use habanero::{
+    /// //     Request,
+    /// //     request::{Builder, Verb, Version}
+    /// // }
+    ///
+    /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
+    ///     .create();
+    /// let target = request.target();
+    /// ```
+    pub fn target(&self) -> &str {
+        &self.target
+    }
+
+    /// Retrieve the Request verb
+    ///
+    /// Retrieve an immutable reference to the verb stored in the Request.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::*;
+    /// // Or use habanero::{
+    /// //     Request,
+    /// //     request::{Builder, Verb, Version}
+    /// // }
+    ///
+    /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
+    ///     .create();
+    /// let verb = request.verb();
+    /// ```
+    pub fn verb(&self) -> &Verb {
+        &self.verb
+    }
+
+    /// Retrieve the Request version
+    ///
+    /// Retrieve an immutable reference to the version stored in the Request.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::*;
+    /// // Or use habanero::{
+    /// //     Request,
+    /// //     request::{Builder, Verb, Version}
+    /// // }
+    ///
+    /// let request = Request::build(Verb::Get, "/", Version::Http1_1)
+    ///     .create();
+    /// let version = request.version();
+    /// ```
+    pub fn version(&self) -> &Version {
+        &self.version
     }
 }
 
@@ -425,6 +550,16 @@ mod tests {
     }
 
     #[test]
+    fn request_body_success() {
+        let expected = "<html>...</html>";
+        let request = Request::build(Verb::Post, "/", Version::Http1_1)
+            .body("<html>...</html>")
+            .create();
+        let actual = request.body();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn request_build_success() {
         let expected = Builder {
             body: "".to_string(),
@@ -435,5 +570,67 @@ mod tests {
         };
         let actual = Request::build(Verb::Get, "/", Version::Http1_1);
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn request_header_success() {
+        let expected = Some("text/html");
+
+        let request = Request::build(Verb::Post, "/", Version::Http1_1)
+            .header("Content-Type", "text/html")
+            .header("Content-Length", "0")
+            .create();
+        let actual = request.header("Content-Type");
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn request_header_missing() {
+        let expected = None;
+
+        let request = Request::build(Verb::Get, "/", Version::Http1_1).create();
+        let actual = request.header("Content-Type");
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn request_headers_success() {
+        let mut expected = BTreeMap::new();
+        expected.insert("Content-Type".to_string(), "text/html".to_string());
+        expected.insert("Content-Length".to_string(), "0".to_string());
+
+        let request = Request::build(Verb::Post, "/", Version::Http1_1)
+            .header("Content-Type", "text/html")
+            .header("Content-Length", "0")
+            .create();
+        let actual = request.headers();
+
+        assert_eq!(expected, *actual);
+    }
+
+    #[test]
+    fn request_target_success() {
+        let expected = "/";
+        let request = Request::build(Verb::Get, "/", Version::Http1_1).create();
+        let actual = request.target();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn request_verb_success() {
+        let expected = Verb::Get;
+        let request = Request::build(Verb::Get, "/", Version::Http1_1).create();
+        let actual = request.verb();
+        assert_eq!(expected, *actual);
+    }
+
+    #[test]
+    fn request_version_success() {
+        let expected = Version::Http1_1;
+        let request = Request::build(Verb::Get, "/", Version::Http1_1).create();
+        let actual = request.version();
+        assert_eq!(expected, *actual);
     }
 }
