@@ -1,7 +1,79 @@
 //! HTTP requests.
-//! Todo(Paul): Module documentation.
+//!
+//! # Request format
+//! As an HTTP request format has a number of optional fields, a `Request` is
+//! initially built via a `Builder`. This allows for the addition of the
+//! optional fields without requiring the `Request` to be mutable at any point.
+//!
+//! The HTTP request format requires a verb, path and version. Headers and the
+//! request body are optional. For example both the following are valid HTTP
+//! requests.
+//! ```text
+//! // Without headers and a request body.
+//! GET / HTTP/1.1
+//!
+//! // Providing headers and a request body.
+//! POST /user HTTP/1.1
+//! Content-Type: application/json
+//! Content-Length: 35
+//!
+//! {
+//!     "name": "John Doe",
+//!     "age": 50
+//! }
+//! ```
+//!
+//! As the verb, path and version are all required, they must be initially
+//! passed to the build method on `Request`. Headers and a request body can
+//! then be added by calling the relevant methods on the `Builder`. The same
+//! requests above would be constructed as so.
+//!
+//! ```rust
+//! use habanero::request::*;
+//! # fn main() {
+//! // Without headers and a request body.
+//! Request::build(Verb::Get, "/", Version::Http1_1).create();
+//!
+//! // Providing headers and a request body.
+//! Request::build(Verb::Post, "/user", Version::Http1_1)
+//!     .header("Content-Type", "application/json")
+//!     .header("Content-Length", "31")
+//!     .body("{\"name\": \"John Doe\", \"age\": 50}")
+//!     .create();
+//! # }
+//! ```
+//!
+//! The building process also provides shortcut methods for setting the request
+//! to contain json or form url-encoded data, by also setting the
+//! `Content-Type` and `Content-Length` header fields.
+//!
+//! ```rust
+//! use habanero::request::*;
+//!
+//! let json = Request::build(Verb::Post, "/", Version::Http1_1)
+//!     .json("{ ... }")
+//!     .create();
+//!  
+//! let url = Request::build(Verb::Post, "/", Version::Http1_1)
+//!     .url_encoded("name=MyName&email=test%40test.com")
+//!     .create();
+//!  
+//! ```
+//!
+//! # Accessing Request data
+//! To access the internal Request data once constructed, access methods are
+//! provided on the Request type itself.
+//!
+//! ```rust
+//! use habanero::request::*;
+//!
+//! let request = Request::build(Verb::Get, "/", Version::Http1_1)
+//!     .create();
+//! let verb = request.verb();
+//! ```
 
 pub use crate::http::Version;
+use core::fmt::{self, Debug, Display, Formatter};
 use std::collections::BTreeMap;
 
 /// HTTP Request Builder.
@@ -407,6 +479,41 @@ impl Request {
     }
 }
 
+impl Display for Request {
+    /// Format the `Request`.
+    ///
+    /// Formats the `Request` into an HTTP compatible request format, able to
+    /// be sent to a server.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::*;
+    /// // Or use habanero::{
+    /// //     Request,
+    /// //     request::{Builder, Verb, Version}
+    /// // };
+    ///
+    /// let request = Request::build(Verb::Post, "/", Version::Http1_1)
+    ///     .header("Content-Type", "application/json")
+    ///     .body("{ ... }")
+    ///     .create();
+    /// let string = request.to_string();
+    /// ```
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} {} {}\n{}\n{}",
+            self.verb,
+            self.target,
+            self.version,
+            self.headers.iter().fold(String::new(), |fold, pair| {
+                format!("{fold}{}: {}\n", pair.0, pair.1)
+            }),
+            self.body
+        )
+    }
+}
+
 /// The HTTP Verbs.
 ///
 /// Representation of the supported HTTP verbs, or methods, which are sent via
@@ -423,6 +530,23 @@ pub enum Verb {
     Post,
     Put,
     Trace,
+}
+
+impl Display for Verb {
+    /// Format the `Verb`.
+    ///
+    /// Formats the `Verb` into what would be expected for an HTTP request.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::request::Verb;
+    ///
+    /// let verb = Verb::Connect;
+    /// let string = verb.to_string();
+    /// ```
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.write_str(&format!("{self:?}").to_uppercase())
+    }
 }
 
 #[cfg(test)]
@@ -632,5 +756,34 @@ mod tests {
         let request = Request::build(Verb::Get, "/", Version::Http1_1).create();
         let actual = request.version();
         assert_eq!(expected, *actual);
+    }
+
+    // impl Display for Request
+
+    #[test]
+    fn request_fmt_success() {
+        let expected = "\
+        POST / HTTP/1.1\n\
+        Content-Length: 16\n\
+        Content-Type: application/json\n\n\
+        {\"key\": \"value\"}";
+
+        let actual = Request::build(Verb::Post, "/", Version::Http1_1)
+            .header("Content-Type", "application/json")
+            .header("Content-Length", "16")
+            .body("{\"key\": \"value\"}")
+            .create()
+            .to_string();
+
+        assert_eq!(expected, actual);
+    }
+
+    // impl Display for Verb
+
+    #[test]
+    fn verb_fmt_success() {
+        let expected = "CONNECT";
+        let actual = Verb::Connect.to_string();
+        assert_eq!(expected, actual);
     }
 }
