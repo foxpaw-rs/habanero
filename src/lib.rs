@@ -14,3 +14,6 @@
     clippy::suspicious,
 )]
 pub mod http;
+pub mod request;
+
+pub use request::Request;
