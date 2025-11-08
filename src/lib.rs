@@ -1,14 +1,16 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! # Habanero
+//! HTTP Client and Server ecosystem for Rust.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+//! Todo(Paul): Library documentation.
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+#[deny(
+    // Todo(Paul): Uncomment when the cargo.toml file is finished.
+    // clippy::cargo,
+    clippy::complexity,
+    clippy::correctness,
+    clippy::pedantic,
+    clippy::perf,
+    clippy::style,
+    clippy::suspicious,
+)]
+pub mod http;
