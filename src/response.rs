@@ -123,8 +123,91 @@ impl Builder {
         self.headers.insert(key.into(), value.into());
         self
     }
-}
 
+    /// Set a `Response` HTML body.
+    ///
+    /// Set a HTML HTTP body on the `Response`. This will overwrite any
+    /// previously set value for the response body, Content-Type header and
+    /// Content-Length header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //     Response,
+    /// //     response::{Builder, Code, Version}
+    /// // };
+    ///
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .html("<html>...</html>")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn html(mut self, body: impl Into<String>) -> Self {
+        let body = body.into();
+        let len = body.len().to_string();
+
+        self.body = body;
+        self.header("Content-Type", "text/html")
+            .header("Content-Length", len)
+    }
+
+    /// Set a `Response` JSON body.
+    ///
+    /// Set a JSON HTTP body on the `Response`. This will overwrite any
+    /// previously set value for the response body, Content-Type header and
+    /// Content-Length header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //     Response,
+    /// //     response::{Builder, Code, Version}
+    /// // };
+    ///
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .json("{ ... }")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn json(mut self, body: impl Into<String>) -> Self {
+        let body = body.into();
+        let len = body.len().to_string();
+
+        self.body = body;
+        self.header("Content-Type", "application/json")
+            .header("Content-Length", len)
+    }
+
+    /// Set a `Response` url encoded body.
+    ///
+    /// Set a url encoded HTTP body on the `Response`. This will overwrite any
+    /// previously set value for the response body, Content-Type header and
+    /// Content-Length header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //     Response,
+    /// //     response::{Builder, Code, Version}
+    /// // };
+    ///
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .url_encoded("name=MyName&email=test%40test.com")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn url_encoded(mut self, body: impl Into<String>) -> Self {
+        let body = body.into();
+        let len = body.len().to_string();
+
+        self.body = body;
+        self.header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Content-Length", len)
+    }
+}
 /// A HTTP Response.
 ///
 /// Stores information about the HTTP response, either received from a
@@ -169,6 +252,27 @@ impl Response {
         }
     }
 
+    /// Retrieve the Response body
+    ///
+    /// Retrieve an immutable reference to the body stored in the Response.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //     Response,
+    /// //     response::{Builder, Code, Version}
+    /// // }
+    ///
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .body("<html>...</html>")
+    ///     .create();
+    /// let body = response.body();
+    /// ```
+    pub fn body(&self) -> &str {
+        &self.body
+    }
+
     /// Build a new `Response`.
     ///
     /// Creates a `Builder`, used to construct the `Response`. `Responses` are
@@ -189,6 +293,90 @@ impl Response {
     #[must_use]
     pub fn build(version: Version, code: Code) -> Builder {
         Builder::new(version, code)
+    }
+
+    /// Retrieve the Response code
+    ///
+    /// Retrieve an immutable reference to the code stored in the Response.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //     Response,
+    /// //     response::{Builder, Code, Version}
+    /// // }
+    ///
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .create();
+    /// let code = response.code();
+    /// ```
+    pub fn code(&self) -> &Code {
+        &self.code
+    }
+
+    /// Retrieve the specified Response header
+    ///
+    /// Retrieve an immutable reference to the specified header stored in the
+    /// Response. Will either return the header value or None if the header is
+    /// not set.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //     Response,
+    /// //     response::{Builder, Code, Version}
+    /// // }
+    ///
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .header("Content-Type", "text/html")
+    ///     .create();
+    /// let header = response.header("Content-Type");
+    /// ```
+    pub fn header(&self, key: impl Into<String>) -> Option<&str> {
+        self.headers.get(&key.into()).map(|value| value.as_str())
+    }
+
+    /// Retrieve the Response headers
+    ///
+    /// Retrieve an immutable reference to the headers stored in the Response.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //     Response,
+    /// //     response::{Builder, Code, Version}
+    /// // }
+    ///
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .header("Content-Type", "text/html")
+    ///     .create();
+    /// let headers = response.headers();
+    /// ```
+    pub fn headers(&self) -> &BTreeMap<String, String> {
+        &self.headers
+    }
+
+    /// Retrieve the Response version
+    ///
+    /// Retrieve an immutable reference to the version stored in the Response.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //     Response,
+    /// //     response::{Builder, Code, Version}
+    /// // }
+    ///
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .create();
+    /// let version = response.version();
+    /// ```
+    pub fn version(&self) -> &Version {
+        &self.version
     }
 }
 
@@ -343,6 +531,37 @@ mod tests {
         assert_eq!(expected, actual.headers);
     }
 
+    #[test]
+    fn builder_html_success() {
+        let actual = Builder::new(Version::Http1_1, Code::Ok).html("<html>...</html>");
+        let expected = Builder::new(Version::Http1_1, Code::Ok)
+            .body("<html>...</html>")
+            .header("Content-Type", "text/html")
+            .header("Content-Length", "16");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn builder_json_success() {
+        let actual = Builder::new(Version::Http1_1, Code::Ok).json("{ ... }");
+        let expected = Builder::new(Version::Http1_1, Code::Ok)
+            .body("{ ... }")
+            .header("Content-Type", "application/json")
+            .header("Content-Length", "7");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn builder_url_encoded_success() {
+        let actual = Builder::new(Version::Http1_1, Code::Ok)
+            .url_encoded("name=MyName&email=test%40test.com");
+        let expected = Builder::new(Version::Http1_1, Code::Ok)
+            .body("name=MyName&email=test%40test.com")
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Content-Length", "33");
+        assert_eq!(expected, actual);
+    }
+
     // impl Response
 
     #[test]
@@ -358,6 +577,16 @@ mod tests {
     }
 
     #[test]
+    fn response_body_success() {
+        let expected = "<html>...</html>";
+        let response = Response::build(Version::Http1_1, Code::Ok)
+            .body("<html>...</html>")
+            .create();
+        let actual = response.body();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn response_build_success() {
         let expected = Builder {
             body: String::new(),
@@ -367,5 +596,59 @@ mod tests {
         };
         let actual = Response::build(Version::Http1_1, Code::Ok);
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn response_header_success() {
+        let expected = Some("text/html");
+
+        let response = Response::build(Version::Http1_1, Code::Ok)
+            .header("Content-Type", "text/html")
+            .header("Content-Length", "0")
+            .create();
+        let actual = response.header("Content-Type");
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn response_header_missing() {
+        let expected = None;
+
+        let response = Response::build(Version::Http1_1, Code::Ok).create();
+        let actual = response.header("Content-Type");
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn response_headers_success() {
+        let mut expected = BTreeMap::new();
+        expected.insert("Content-Type".to_string(), "text/html".to_string());
+        expected.insert("Content-Length".to_string(), "0".to_string());
+
+        let response = Response::build(Version::Http1_1, Code::Ok)
+            .header("Content-Type", "text/html")
+            .header("Content-Length", "0")
+            .create();
+        let actual = response.headers();
+
+        assert_eq!(expected, *actual);
+    }
+
+    #[test]
+    fn response_code_success() {
+        let expected = Code::Ok;
+        let response = Response::build(Version::Http1_1, Code::Ok).create();
+        let actual = response.code();
+        assert_eq!(expected, *actual);
+    }
+
+    #[test]
+    fn response_version_success() {
+        let expected = Version::Http1_1;
+        let response = Response::build(Version::Http1_1, Code::Ok).create();
+        let actual = response.version();
+        assert_eq!(expected, *actual);
     }
 }
