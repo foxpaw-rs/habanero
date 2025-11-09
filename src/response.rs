@@ -1,7 +1,83 @@
 //! HTTP responses.
-//! Todo(Paul): Module documentation.
+//!
+//! # Response format
+//! As an HTTP response format has a number of optional fields, a `Response` is
+//! initially built via a `Builder`. This allows for the addition of the
+//! optional fields without requiring the `Response` to be mutable at any point.
+//!
+//! The HTTP response format requires a version and status code. Headers and the
+//! response body are optional. For example both the following are valid HTTP
+//! responses.
+//! ```text
+//! // Without headers and a response body.
+//! HTTP/1.1 200 OK
+//!
+//! // Providing headers and a response body.
+//! HTTP/1.1 200 OK
+//! Content-Type: application/json
+//! Content-Length: 35
+//!
+//! {
+//!     "name": "John Doe",
+//!     "age": 50
+//! }
+//! ```
+//!
+//! As the version and status code are all required, they must be initially
+//! passed to the build method on `Response`. Headers and a response body can
+//! then be added by calling the relevant methods on the `Builder`. The same
+//! responses above would be constructed as so.
+//!
+//! ```rust
+//! use habanero::response::*;
+//! # fn main() {
+//! // Without headers and a response body.
+//! Response::build(Version::Http1_1, Code::Ok).create();
+//!
+//! // Providing headers and a response body.
+//! Response::build(Version::Http1_1, Code::Ok)
+//!     .header("Content-Type", "application/json")
+//!     .header("Content-Length", "31")
+//!     .body("{\"name\": \"John Doe\", \"age\": 50}")
+//!     .create();
+//! # }
+//! ```
+//!
+//! The building process also provides shortcut methods for setting the response
+//! to contain json, html or form url-encoded data, by also setting the
+//! `Content-Type` and `Content-Length` header fields.
+//!
+//! ```rust
+//! use habanero::response::*;
+//!
+//! let json = Response::build(Version::Http1_1, Code::Ok)
+//!     .json("{ ... }")
+//!     .create();
+//!  
+//! let html = Response::build(Version::Http1_1, Code::Ok)
+//!     .html("<html>...</html>")
+//!     .create();
+//!  
+//! let url = Response::build(Version::Http1_1, Code::Ok)
+//!     .url_encoded("name=MyName&email=test%40test.com")
+//!     .create();
+//!  
+//! ```
+//!
+//! # Accessing Response data
+//! To access the internal Response data once constructed, access methods are
+//! provided on the Response type itself.
+//!
+//! ```rust
+//! use habanero::response::*;
+//!
+//! let response = Response::build(Version::Http1_1, Code::Ok)
+//!     .create();
+//! let verb = response.code();
+//! ```
 
 pub use crate::http::Version;
+use core::fmt::{self, Debug, Display, Formatter};
 use std::collections::BTreeMap;
 
 /// HTTP Response Builder.
@@ -208,6 +284,7 @@ impl Builder {
             .header("Content-Length", len)
     }
 }
+
 /// A HTTP Response.
 ///
 /// Stores information about the HTTP response, either received from a
@@ -380,6 +457,40 @@ impl Response {
     }
 }
 
+impl Display for Response {
+    /// Format the `Response`.
+    ///
+    /// Formats the `Response` into an HTTP compatible response format, able to
+    /// be sent to a server.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //     Response,
+    /// //     response::{Builder, Code, Version}
+    /// // };
+    ///
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .header("Content-Type", "application/json")
+    ///     .body("{ ... }")
+    ///     .create();
+    /// let string = response.to_string();
+    /// ```
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} {}\n{}\n{}",
+            self.version,
+            self.code,
+            self.headers.iter().fold(String::new(), |fold, pair| {
+                format!("{fold}{}: {}\n", pair.0, pair.1)
+            }),
+            self.body
+        )
+    }
+}
+
 /// The HTTP response codes.
 ///
 /// Representation of the supported HTTP response codes used to specify the
@@ -457,6 +568,95 @@ pub enum Code {
     LoopDetected = 508,
     NotExtended = 510,
     NetworkAuthenticationRequired = 511,
+}
+
+impl Display for Code {
+    /// Format the `Code`.
+    ///
+    /// Formats the `Code` into what would be expected for an HTTP response.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::Code;
+    ///
+    /// let code = Code::Ok;
+    /// let string = code.to_string();
+    /// ```
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let readable = match self {
+            Code::Continue => "Continue",
+            Code::SwitchingProtocols => "Switching Protocols",
+            Code::Processing => "Processing",
+            Code::EarlyHints => "Early Hints",
+
+            // 2XX Successful Responses
+            Code::Ok => "OK",
+            Code::Created => "Created",
+            Code::Accepted => "Accepted",
+            Code::NonAuthoritativeInformation => "Non-Authoritative Information",
+            Code::NoContent => "No Content",
+            Code::ResetContent => "Reset Content",
+            Code::PartialContent => "Partial Content",
+            Code::MultiStatus => "Multi-Status",
+            Code::AlreadyReported => "Already Reported",
+            Code::IMUsed => "IM Used",
+
+            // 3XX Redirection Messages
+            Code::MultipleChoices => "Multiple Choices",
+            Code::MovedPermanently => "Moved Permanently",
+            Code::Found => "Found",
+            Code::SeeOther => "See Other",
+            Code::NotModified => "Not Modified",
+            Code::TemporaryRedirect => "Temporary Redirect",
+            Code::PermanentRedirect => "Permanent Redirect",
+
+            // 4XX Client Error Responses
+            Code::BadRequest => "Bad Request",
+            Code::Unauthorized => "Unauthorized",
+            Code::PaymentRequired => "Payment Required",
+            Code::Forbidden => "Forbidden",
+            Code::NotFound => "Not Found",
+            Code::MethodNotAllowed => "Method Not Allowed",
+            Code::NotAcceptable => "Not Acceptable",
+            Code::ProxyAuthenticationRequired => "Proxy Authentication Required",
+            Code::RequestTimeout => "Request Timeout",
+            Code::Conflict => "Conflict",
+            Code::Gone => "Gone",
+            Code::LengthRequired => "Length Required",
+            Code::PreconditionFailed => "Precondition Failed",
+            Code::ContentTooLarge => "Content Too Large",
+            Code::UriTooLong => "Uri Too Long",
+            Code::UnsupportedMediaType => "Unsupported Media Type",
+            Code::RangeNotSatisfiable => "Range Not Satisfiable",
+            Code::ExpectationFailed => "Expectation Failed",
+            Code::ImATeapot => "I'm a teapot",
+            Code::MisdirectedRequest => "Misdirected Request",
+            Code::UnprocessableContent => "Unprocessable Content",
+            Code::Locked => "Locked",
+            Code::FailedDependency => "Failed Dependency",
+            Code::TooEarly => "Too Early",
+            Code::UpgradeRequired => "Upgrade Required",
+            Code::PreconditionRequired => "Precondition Required",
+            Code::TooManyRequests => "Too Many Requests",
+            Code::RequestHeaderFieldsTooLarge => "Request Header Fields Too Large",
+            Code::UnavailableForLegalReasons => "Unavailable For Legal Reasons",
+
+            // 5XX Server Error Responses
+            Code::InternalServerError => "Internal Server Error",
+            Code::NotImplemented => "Not Implemented",
+            Code::BadGateway => "Bad Gateway",
+            Code::ServiceUnavailable => "Service Unavailable",
+            Code::GatewayTimeout => "Gateway Timeout",
+            Code::HTTPVersionNotSupported => "Http Version Not Supported",
+            Code::VariantAlsoNegotiates => "Variant Also Negotiates",
+            Code::InsufficientStorage => "Insufficient Storage",
+            Code::LoopDetected => "Loop Detected",
+            Code::NotExtended => "Not Extended",
+            Code::NetworkAuthenticationRequired => "Network Authentication Required",
+        };
+        let code = *self as u16;
+        write!(f, "{code} {readable}")
+    }
 }
 
 #[cfg(test)]
@@ -650,5 +850,62 @@ mod tests {
         let response = Response::build(Version::Http1_1, Code::Ok).create();
         let actual = response.version();
         assert_eq!(expected, *actual);
+    }
+
+    // impl Display for Response
+
+    #[test]
+    fn request_fmt_success() {
+        let expected = "\
+        HTTP/1.1 200 OK\n\
+        Content-Length: 16\n\
+        Content-Type: application/json\n\n\
+        {\"key\": \"value\"}";
+
+        let actual = Response::build(Version::Http1_1, Code::Ok)
+            .header("Content-Type", "application/json")
+            .header("Content-Length", "16")
+            .body("{\"key\": \"value\"}")
+            .create()
+            .to_string();
+
+        assert_eq!(expected, actual);
+    }
+
+    // impl Display for Code
+
+    #[test]
+    fn version_fmt_default() {
+        let expected = "404 Not Found";
+        let actual = Code::NotFound.to_string();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn version_fmt_ok() {
+        let expected = "200 OK";
+        let actual = Code::Ok.to_string();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn version_fmt_non_authoritative_information() {
+        let expected = "203 Non-Authoritative Information";
+        let actual = Code::NonAuthoritativeInformation.to_string();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn version_fmt_multi_status() {
+        let expected = "207 Multi-Status";
+        let actual = Code::MultiStatus.to_string();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn version_fmt_im_a_teapot() {
+        let expected = "418 I'm a teapot";
+        let actual = Code::ImATeapot.to_string();
+        assert_eq!(expected, actual);
     }
 }
