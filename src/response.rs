@@ -2,6 +2,7 @@
 //! Todo(Paul): Module documentation.
 
 pub use crate::http::Version;
+use std::collections::BTreeMap;
 
 /// HTTP Response Builder.
 ///
@@ -12,10 +13,25 @@ pub use crate::http::Version;
 /// off the same set of information, the `Builder` should be cloned.
 ///
 /// # Examples
-/// Todo(Paul): Examples once feature complete.
+/// ```rust
+/// use habanero::response::*;
+/// // Or use habanero::{
+/// //      Response,
+/// //      response::{
+/// //          Builder, Code, Version
+/// //      }
+/// //  };
+//
+/// let response = Response::build(Version::Http1_1, Code::Ok)
+///     .header("Content-Type", "application/json")
+///     .body("{ ... }")
+///     .create();
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Builder {
+    body: String,
     code: Code,
+    headers: BTreeMap<String, String>,
     version: Version,
 }
 
@@ -25,7 +41,37 @@ impl Builder {
     /// Create a new `Builder` via the `Response::build` method to invoke the
     /// builder pattern and build up a `Response`.
     fn new(version: Version, code: Code) -> Self {
-        Self { code, version }
+        Self {
+            body: String::new(),
+            code,
+            headers: BTreeMap::new(),
+            version,
+        }
+    }
+
+    /// Set a `Response` body.
+    ///
+    /// Set a HTTP body on the `Response`. This will overwrite any previously
+    /// set value for the response body.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //     Response,
+    /// //     response::{Builder, Code, Version}
+    /// // };
+    ///
+    /// // Note: The final response body will be "{ ... }".
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .body("<html>...</html>")
+    ///     .body("{ ... }")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn body(mut self, body: impl Into<String>) -> Self {
+        self.body = body.into();
+        self
     }
 
     /// Create the built `Response`.
@@ -34,10 +80,48 @@ impl Builder {
     /// creating the built `Response`.
     ///
     /// # Examples
-    /// Todo(Paul): Examples once feature complete.
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //      Response,
+    /// //      response::{
+    /// //          Builder, Code, Version
+    /// //      }
+    /// //  };
+    ///
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .header("Content-Type", "application/json")
+    ///     .body("{ ... }")
+    ///     .create();
+    /// ```
     #[must_use]
     pub fn create(self) -> Response {
-        Response::new(self.version, self.code)
+        Response::new(self.version, self.code, self.headers, self.body)
+    }
+
+    /// Set a `Response` header.
+    ///
+    /// Set a HTTP header on the `Response`. This will overwrite any previously
+    /// set value for that header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::response::*;
+    /// // Or use habanero::{
+    /// //     Response,
+    /// //     response::{Builder, Code, Version}
+    /// // };
+    ///
+    /// // Note: The final "Content-Type" header will be "text/html".
+    /// let response = Response::build(Version::Http1_1, Code::Ok)
+    ///     .header("Content-Type", "application/json")
+    ///     .header("Content-Type", "text/html")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.headers.insert(key.into(), value.into());
+        self
     }
 }
 
@@ -49,10 +133,25 @@ impl Builder {
 ///  the different information required to be contained within each `Response`.
 ///
 /// # Examples
-/// Todo(Paul): Examples once feature complete.
+/// ```rust
+/// use habanero::response::*;
+/// // Or use habanero::{
+/// //      Response,
+/// //      response::{
+/// //          Builder, Code, Version
+/// //      }
+/// //  };
+//
+/// let response = Response::build(Version::Http1_1, Code::Ok)
+///     .header("Content-Type", "application/json")
+///     .body("{ ... }")
+///     .create();
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Response {
+    body: String,
     code: Code,
+    headers: BTreeMap<String, String>,
     version: Version,
 }
 
@@ -61,8 +160,13 @@ impl Response {
     ///
     /// Creates a new response, invoked via the `Builder::create` method to
     /// finalise the construction of the `Response`.
-    fn new(version: Version, code: Code) -> Self {
-        Self { code, version }
+    fn new(version: Version, code: Code, headers: BTreeMap<String, String>, body: String) -> Self {
+        Self {
+            body,
+            code,
+            headers,
+            version,
+        }
     }
 
     /// Build a new `Response`.
@@ -175,10 +279,11 @@ mod tests {
     // impl Builder
 
     #[test]
-    // Todo(Paul): Add optional fields once implemented.
     fn builder_new_success() {
         let expected = Builder {
+            body: String::new(),
             code: Code::Ok,
+            headers: BTreeMap::new(),
             version: Version::Http1_1,
         };
         let actual = Builder::new(Version::Http1_1, Code::Ok);
@@ -186,10 +291,29 @@ mod tests {
     }
 
     #[test]
-    // Todo(Paul): Add optional fields once implemented.
+    fn builder_body_success() {
+        let expected = "body";
+        let actual = Builder::new(Version::Http1_1, Code::Ok).body("body");
+
+        assert_eq!(expected, actual.body);
+    }
+
+    #[test]
+    fn builder_body_overwrite() {
+        let expected = "body";
+        let actual = Builder::new(Version::Http1_1, Code::Ok)
+            .body("not_body")
+            .body("body");
+
+        assert_eq!(expected, actual.body);
+    }
+
+    #[test]
     fn builder_create_success() {
         let expected = Response {
+            body: String::new(),
             code: Code::Ok,
+            headers: BTreeMap::new(),
             version: Version::Http1_1,
         };
 
@@ -197,24 +321,48 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
+    #[test]
+    fn builder_header_success() {
+        let mut expected = BTreeMap::new();
+        expected.insert("key".to_string(), "value".to_string());
+
+        let actual = Builder::new(Version::Http1_1, Code::Ok).header("key", "value");
+
+        assert_eq!(expected, actual.headers);
+    }
+
+    #[test]
+    fn builder_header_overwrite() {
+        let mut expected = BTreeMap::new();
+        expected.insert("key".to_string(), "value".to_string());
+
+        let actual = Builder::new(Version::Http1_1, Code::Ok)
+            .header("key", "not_value")
+            .header("key", "value");
+
+        assert_eq!(expected, actual.headers);
+    }
+
     // impl Response
 
     #[test]
-    // Todo(Paul): Add optional fields once implemented.
     fn response_new_success() {
         let expected = Response {
+            body: String::new(),
             code: Code::Ok,
+            headers: BTreeMap::new(),
             version: Version::Http1_1,
         };
-        let actual = Response::new(Version::Http1_1, Code::Ok);
+        let actual = Response::new(Version::Http1_1, Code::Ok, BTreeMap::new(), String::new());
         assert_eq!(expected, actual);
     }
 
     #[test]
-    // Todo(Paul): Add optional fields once implemented.
     fn response_build_success() {
         let expected = Builder {
+            body: String::new(),
             code: Code::Ok,
+            headers: BTreeMap::new(),
             version: Version::Http1_1,
         };
         let actual = Response::build(Version::Http1_1, Code::Ok);
