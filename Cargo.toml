@@ -1,7 +1,12 @@
 [package]
 name = "foxpaw-habanero"
+description = "Rusty HTTP Client and Server ecosystem."
+license = "MIT"
 version = "0.1.0"
 edition = "2024"
+repository = "https://github.com/foxpaw-rs/habanero"
+categories = ["command-line-utilities", "network-programming", "web-programming"]
+keywords = ["HTTP", "client", "server", "web"]
 
 [dependencies]
 
