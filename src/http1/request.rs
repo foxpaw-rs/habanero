@@ -186,6 +186,24 @@ impl Request {
         }
     }
 
+    /// Retrieve the `Request` body.
+    ///
+    /// Retrieve an immutable reference to the body stored in this `Request`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let request = Request::build(Verb::Post, "/")
+    ///     .body("Hello World")
+    ///     .create();
+    /// let body = request.body();
+    /// ```
+    #[must_use]
+    pub fn body(&self) -> &str {
+        &self.body
+    }
+
     /// Build a new `Request`
     ///
     /// Creates a `Builder` used top construct the `Request`. `Requests` are
@@ -203,6 +221,78 @@ impl Request {
     #[must_use]
     pub fn build(verb: Verb, target: impl Into<String>) -> Builder {
         Builder::new(verb, target)
+    }
+
+    /// Retrieve the specified `Request` header.
+    ///
+    /// Retrieve and immutable reference to the specified header stored in the
+    /// `Request`. Will return None if the requested header is not set.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let request = Request::build(Verb::Post, "/")
+    ///     .header("Content-Type", "application/json")
+    ///     .create();
+    /// let header = request.header("Content-Type");
+    /// ```
+    #[must_use]
+    pub fn header(&self, key: impl Into<String>) -> Option<&str> {
+        self.headers.get(&key.into()).map(String::as_str)
+    }
+
+    /// Retrieve the `Request` headers.
+    ///
+    /// Retrieve an immutable reference to all the headers stored in the
+    /// `Request`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let request = Request::build(Verb::Post, "/")
+    ///     .header("Content-Type", "application/json")
+    ///     .create();
+    /// let headers = request.headers();
+    /// ```
+    #[must_use]
+    pub fn headers(&self) -> &BTreeMap<String, String> {
+        &self.headers
+    }
+
+    /// Retrieve the `Request` target.
+    ///
+    /// Retrieve and immutable reference to the `Request` target.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let request = Request::build(Verb::Post, "/")
+    ///     .create();
+    /// let target = request.target();
+    /// ```
+    #[must_use]
+    pub fn target(&self) -> &str {
+        &self.target
+    }
+
+    /// Retrieve the `Request` verb.
+    ///
+    /// Retrieve and immutable reference to the `Request` verb.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let request = Request::build(Verb::Post, "/")
+    ///     .create();
+    /// let verb = request.verb();
+    /// ```
+    #[must_use]
+    pub fn verb(&self) -> &Verb {
+        &self.verb
     }
 }
 
@@ -331,7 +421,15 @@ mod tests {
     }
 
     #[test]
-    fn request_create_success() {
+    fn request_body_success() {
+        let expected = "Hello World";
+        let request = Request::build(Verb::Post, "/").body("Hello World").create();
+        let actual = request.body();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn request_build_success() {
         let expected = Builder {
             body: String::new(),
             headers: BTreeMap::new(),
@@ -340,5 +438,58 @@ mod tests {
         };
         let actual = Request::build(Verb::Post, "/");
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn request_header_success() {
+        let expected = Some("text/html");
+
+        let request = Request::build(Verb::Post, "/")
+            .header("Content-Type", "text/html")
+            .create();
+        let actual = request.header("Content-Type");
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn request_header_missing() {
+        let expected = None;
+
+        let request = Request::build(Verb::Get, "/").create();
+        let actual = request.header("Content-Type");
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn request_headers_success() {
+        let mut expected = BTreeMap::new();
+        expected.insert("Content-Type".to_string(), "text/html".to_string());
+        expected.insert("Content-Length".to_string(), "0".to_string());
+
+        let request = Request::build(Verb::Post, "/")
+            .header("Content-Type", "text/html")
+            .header("Content-Length", "0")
+            .create();
+        let actual = request.headers();
+
+        assert_eq!(expected, *actual);
+    }
+
+    #[test]
+    fn request_target_success() {
+        let expected = "/";
+        let request = Request::build(Verb::Get, "/").create();
+        let actual = request.target();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn request_verb_success() {
+        let expected = Verb::Get;
+        let request = Request::build(Verb::Get, "/").create();
+        let actual = request.verb();
+        assert_eq!(expected, *actual);
     }
 }
