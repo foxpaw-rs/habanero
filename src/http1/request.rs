@@ -2,6 +2,7 @@
 //!
 //! Todo(Paul): Module documentation.
 
+use core::fmt::{self, Debug, Display, Formatter};
 use std::collections::BTreeMap;
 
 /// HTTP Request Builder.
@@ -17,7 +18,7 @@ use std::collections::BTreeMap;
 /// use habanero::http1::*;
 ///
 /// let request = Request::build(Verb::Post, "/")
-///     .header("Content-Type", "text/html")
+///     .header("Content-Type", "text/plain")
 ///     .body("Hello World")
 ///     .create();
 /// ```
@@ -71,7 +72,7 @@ impl Builder {
     /// use habanero::http1::*;
     ///
     /// let request = Request::build(Verb::Post, "/")
-    ///     .header("Content-Type", "text/html")
+    ///     .header("Content-Type", "text/plain")
     ///     .body("Hello World")
     ///     .create();
     /// ```
@@ -160,7 +161,7 @@ impl Builder {
 /// use habanero::http1::*;
 ///
 /// let request = Request::build(Verb::Post, "/")
-///     .header("Content-Type", "text/html")
+///     .header("Content-Type", "text/plain")
 ///     .body("Hello World")
 ///     .create();
 /// ```
@@ -214,7 +215,7 @@ impl Request {
     /// use habanero::http1::*;
     ///
     /// let request = Request::build(Verb::Post, "/")
-    ///     .header("Content-Type", "text/html")
+    ///     .header("Content-Type", "text/plain")
     ///     .body("Hello World")
     ///     .create();
     /// ```
@@ -296,6 +297,36 @@ impl Request {
     }
 }
 
+impl Display for Request {
+    /// Format the `Request`.
+    ///
+    /// Formats the `Request` into an HTTP compatible request format, able to
+    /// be sent.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let request = Request::build(Verb::Post, "/")
+    ///     .header("Content-Type", "text/plain")
+    ///     .body("Hello World")
+    ///     .create();
+    /// let string = request.to_string();
+    /// ```
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} {} HTTP/1.1\n{}\n{}",
+            self.verb,
+            self.target,
+            self.headers.iter().fold(String::new(), |fold, pair| {
+                format!("{fold}{}: {}\n", pair.0, pair.1)
+            }),
+            self.body
+        )
+    }
+}
+
 /// The HTTP Verbs.
 ///
 /// Representation of the supported HTTP verbs, or methods, which are sent via
@@ -312,6 +343,23 @@ pub enum Verb {
     Post,
     Put,
     Trace,
+}
+
+impl Display for Verb {
+    /// Format the `Verb`.
+    ///
+    /// Formats the `Verb` into what would be expected for an HTTP request.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::Verb;
+    ///
+    /// let verb = Verb::Connect;
+    /// let string = verb.to_string();
+    /// ```
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.write_str(&format!("{self:?}").to_uppercase())
+    }
 }
 
 #[cfg(test)]
@@ -442,10 +490,10 @@ mod tests {
 
     #[test]
     fn request_header_success() {
-        let expected = Some("text/html");
+        let expected = Some("text/plain");
 
         let request = Request::build(Verb::Post, "/")
-            .header("Content-Type", "text/html")
+            .header("Content-Type", "text/plain")
             .create();
         let actual = request.header("Content-Type");
 
@@ -465,11 +513,11 @@ mod tests {
     #[test]
     fn request_headers_success() {
         let mut expected = BTreeMap::new();
-        expected.insert("Content-Type".to_string(), "text/html".to_string());
+        expected.insert("Content-Type".to_string(), "text/plain".to_string());
         expected.insert("Content-Length".to_string(), "0".to_string());
 
         let request = Request::build(Verb::Post, "/")
-            .header("Content-Type", "text/html")
+            .header("Content-Type", "text/plain")
             .header("Content-Length", "0")
             .create();
         let actual = request.headers();
@@ -491,5 +539,35 @@ mod tests {
         let request = Request::build(Verb::Get, "/").create();
         let actual = request.verb();
         assert_eq!(expected, *actual);
+    }
+
+    // impl Display for Request
+
+    #[test]
+    fn request_fmt_success() {
+        let expected = "\
+        POST / HTTP/1.1\n\
+        Content-Length: 11\n\
+        Content-Type: text/plain\n\
+        \n\
+        Hello World";
+
+        let actual = Request::build(Verb::Post, "/")
+            .header("Content-Type", "text/plain")
+            .header("Content-Length", "11")
+            .body("Hello World")
+            .create()
+            .to_string();
+
+        assert_eq!(expected, actual);
+    }
+
+    // impl Display for Verb
+
+    #[test]
+    fn verb_fmt_success() {
+        let expected = "CONNECT";
+        let actual = Verb::Connect.to_string();
+        assert_eq!(expected, actual);
     }
 }
