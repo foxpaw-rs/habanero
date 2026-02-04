@@ -1,6 +1,75 @@
-//! Http1 Requests
+//! HTTP/1.1 requests.
 //!
-//! Todo(Paul): Module documentation.
+//! # Request format
+//! As an HTTP/1.1 request format has a number of optional fields, a `Request`
+//! is initially built via a `Builder`. This allows for the addition of the
+//! optional fields without requiring the `Request` to be mutable at any point.
+//!
+//! The HTTP/1.1 request format requires a verb and target. Headers and the
+//! request body are optional. For example both the following are valid HTTP
+//! requests.
+//! ```text
+//! // Without headers and a request body.
+//! GET / HTTP/1.1
+//!
+//! // Providing headers and a request body.
+//! POST /user HTTP/1.1
+//! Content-Type: application/json
+//! Content-Length: 35
+//!
+//! {
+//!     "name": "John Doe",
+//!     "age": 50
+//! }
+//! ```
+//!
+//! As the verb and target are all required, they must be initially passed to
+//! the build method on `Request`. Headers and a request body can then be added
+//! by calling the relevant methods on the `Builder`. The same requests above
+//! would be constructed as so.
+//!
+//! ```rust
+//! use habanero::http1::*;
+//!
+//! // Without headers and a request body.
+//! Request::build(Verb::Get, "/").create();
+//!
+//! // Providing headers and a request body.
+//! Request::build(Verb::Post, "/user")
+//!     .header("Content-Type", "application/json")
+//!     .header("Content-Length", "31")
+//!     .body("{\"name\": \"John Doe\", \"age\": 50}")
+//!     .create();
+//! ```
+//!
+//! The building process also provides shortcut methods for setting the request
+//! to contain json or form url-encoded data, by also setting the
+//! `Content-Type` and `Content-Length` header fields.
+//!
+//! ```rust
+//! use habanero::http1::*;
+//!
+//! let json = Request::build(Verb::Post, "/")
+//!     .json("{ ... }")
+//!     .create();
+//!
+//! let url = Request::build(Verb::Post, "/")
+//!     .url_encoded("key=value")
+//!     .create();
+//!
+//! ```
+//!
+//! # Accessing Request data
+//! To access the internal Request data once constructed, access methods are
+//! provided on the Request type itself.
+//!
+//! ```rust
+//! use habanero::http1::*;
+//!
+//! let request = Request::build(Verb::Get, "/")
+//!     .create();
+//! let verb = request.verb();
+//! ```
 
 use core::fmt::{self, Debug, Display, Formatter};
 use std::collections::BTreeMap;
@@ -33,7 +102,7 @@ pub struct Builder {
 impl Builder {
     /// Create a new `Builder`.
     ///
-    /// Create a new `Builder` via the `Request::build` method to invoked the
+    /// Create a new `Builder` via the `Request::build` method to invoke the
     /// builder pattern and build up a `Request`.
     fn new(verb: Verb, target: impl Into<String>) -> Self {
         Self {
@@ -46,7 +115,7 @@ impl Builder {
 
     /// Set a `Request` body.
     ///
-    /// Set a HTTP body on the `Request`. This will overwrite any previously
+    /// Set an HTTP body on the `Request`. This will overwrite any previously
     /// set value for the body.
     ///
     /// # Examples
@@ -62,7 +131,7 @@ impl Builder {
         self
     }
 
-    /// Create the build `Request`.
+    /// Create the built `Request`.
     ///
     /// Finalizes the `Builder`, invalidating the current reference and
     /// creating the built `Request`.
@@ -83,7 +152,7 @@ impl Builder {
 
     /// Set a `Request` header.
     ///
-    /// Set a HTTP header on the `Request`. This will overwrite any previously
+    /// Set an HTTP header on the `Request`. This will overwrite any previously
     /// set value for that header.
     ///
     /// # Examples
@@ -177,7 +246,7 @@ impl Request {
     /// Create a new `Request`.
     ///
     /// Creates a new `Request` invoked via the `Builder::create` method to
-    /// finalise the construction of the `Request`.
+    /// finalize the construction of the `Request`.
     fn new(verb: Verb, target: String, headers: BTreeMap<String, String>, body: String) -> Self {
         Self {
             body,
@@ -207,7 +276,7 @@ impl Request {
 
     /// Build a new `Request`
     ///
-    /// Creates a `Builder` used top construct the `Request`. `Requests` are
+    /// Creates a `Builder` used to construct the `Request`. `Requests` are
     /// created using a builder pattern.
     ///
     /// # Examples
@@ -226,7 +295,7 @@ impl Request {
 
     /// Retrieve the specified `Request` header.
     ///
-    /// Retrieve and immutable reference to the specified header stored in the
+    /// Retrieve an immutable reference to the specified header stored in the
     /// `Request`. Will return None if the requested header is not set.
     ///
     /// # Examples
@@ -264,7 +333,7 @@ impl Request {
 
     /// Retrieve the `Request` target.
     ///
-    /// Retrieve and immutable reference to the `Request` target.
+    /// Retrieve an immutable reference to the `Request` target.
     ///
     /// # Examples
     /// ```rust
@@ -281,7 +350,7 @@ impl Request {
 
     /// Retrieve the `Request` verb.
     ///
-    /// Retrieve and immutable reference to the `Request` verb.
+    /// Retrieve an immutable reference to the `Request` verb.
     ///
     /// # Examples
     /// ```rust
@@ -300,8 +369,7 @@ impl Request {
 impl Display for Request {
     /// Format the `Request`.
     ///
-    /// Formats the `Request` into an HTTP compatible request format, able to
-    /// be sent.
+    /// Formats the `Request` into an HTTP compatible request format.
     ///
     /// # Examples
     /// ```rust
@@ -329,8 +397,7 @@ impl Display for Request {
 
 /// The HTTP Verbs.
 ///
-/// Representation of the supported HTTP verbs, or methods, which are sent via
-/// the HTTP request.
+/// Representation of the supported HTTP verbs, or methods.
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum Verb {
@@ -384,8 +451,8 @@ mod tests {
     #[test]
     fn builder_body_success() {
         let expected = String::from("Hello World");
-        let actual = Builder::new(Verb::Get, "/").body("Hello World");
-        assert_eq!(expected, actual.body);
+        let actual = Builder::new(Verb::Get, "/").body("Hello World").body;
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -393,46 +460,49 @@ mod tests {
         let expected = String::from("Hello World");
         let actual = Builder::new(Verb::Get, "/")
             .body("Overwritten")
-            .body("Hello World");
-        assert_eq!(expected, actual.body);
+            .body("Hello World")
+            .body;
+        assert_eq!(expected, actual);
     }
 
     #[test]
     fn builder_create_success() {
         let expected = Request {
-            body: String::new(),
-            headers: BTreeMap::new(),
+            body: String::from("Hello World"),
+            headers: BTreeMap::from([(String::from("Content-Type"), String::from("text/plain"))]),
             verb: Verb::Post,
             target: String::from("/"),
         };
-        let actual = Builder::new(Verb::Post, "/").create();
+        let actual = Builder::new(Verb::Post, "/")
+            .header("Content-Type", "text/plain")
+            .body("Hello World")
+            .create();
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn builder_header_success() {
-        let mut expected = BTreeMap::new();
-        expected.insert(String::from("Key"), String::from("Hello World"));
-
-        let actual = Builder::new(Verb::Get, "/").header("Key", "Hello World");
-        assert_eq!(expected, actual.headers);
+        let expected = BTreeMap::from([(String::from("Key"), String::from("Hello World"))]);
+        let actual = Builder::new(Verb::Get, "/")
+            .header("Key", "Hello World")
+            .headers;
+        assert_eq!(expected, actual);
     }
 
     #[test]
     fn builder_header_overwrite() {
-        let mut expected = BTreeMap::new();
-        expected.insert(String::from("Key"), String::from("Hello World"));
-
+        let expected = BTreeMap::from([(String::from("Key"), String::from("Hello World"))]);
         let actual = Builder::new(Verb::Get, "/")
             .header("Key", "Overwritten")
-            .header("Key", "Hello World");
-        assert_eq!(expected, actual.headers);
+            .header("Key", "Hello World")
+            .headers;
+        assert_eq!(expected, actual);
     }
 
     #[test]
     fn builder_json_success() {
-        let actual = Builder::new(Verb::Post, "/").json("{ ... }");
-        let expected = Builder::new(Verb::Post, "/")
+        let expected = Builder::new(Verb::Post, "/").json("{ ... }");
+        let actual = Builder::new(Verb::Post, "/")
             .body("{ ... }")
             .header("Content-Type", "application/json")
             .header("Content-Length", "7");
@@ -441,8 +511,8 @@ mod tests {
 
     #[test]
     fn builder_url_encoded_success() {
-        let actual = Builder::new(Verb::Post, "/").url_encoded("key=value");
-        let expected = Builder::new(Verb::Post, "/")
+        let expected = Builder::new(Verb::Post, "/").url_encoded("key=value");
+        let actual = Builder::new(Verb::Post, "/")
             .body("key=value")
             .header("Content-Type", "application/x-www-form-urlencoded")
             .header("Content-Length", "9");
@@ -491,31 +561,27 @@ mod tests {
     #[test]
     fn request_header_success() {
         let expected = Some("text/plain");
-
         let request = Request::build(Verb::Post, "/")
             .header("Content-Type", "text/plain")
             .create();
         let actual = request.header("Content-Type");
-
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn request_header_missing() {
         let expected = None;
-
         let request = Request::build(Verb::Get, "/").create();
         let actual = request.header("Content-Type");
-
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn request_headers_success() {
-        let mut expected = BTreeMap::new();
-        expected.insert("Content-Type".to_string(), "text/plain".to_string());
-        expected.insert("Content-Length".to_string(), "0".to_string());
-
+        let expected = BTreeMap::from([
+            (String::from("Content-Type"), String::from("text/plain")),
+            (String::from("Content-Length"), String::from("0")),
+        ]);
         let request = Request::build(Verb::Post, "/")
             .header("Content-Type", "text/plain")
             .header("Content-Length", "0")
@@ -551,14 +617,12 @@ mod tests {
         Content-Type: text/plain\n\
         \n\
         Hello World";
-
         let actual = Request::build(Verb::Post, "/")
             .header("Content-Type", "text/plain")
             .header("Content-Length", "11")
             .body("Hello World")
             .create()
             .to_string();
-
         assert_eq!(expected, actual);
     }
 
