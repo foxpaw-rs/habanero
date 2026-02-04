@@ -98,6 +98,54 @@ impl Builder {
         self.headers.insert(key.into(), value.into());
         self
     }
+
+    /// Set a `Request` JSON body.
+    ///
+    /// Set a JSON HTTP body on the `Request`. This will overwrite any
+    /// previously set value for the request body, Content-Type header and
+    /// Content-Length header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let request = Request::build(Verb::Post, "/")
+    ///     .json("{...}")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn json(self, body: impl Into<String>) -> Self {
+        let body = body.into();
+        let len = body.len();
+
+        self.body(body)
+            .header("Content-Type", "application/json")
+            .header("Content-Length", len.to_string())
+    }
+
+    /// Set a `Request` url encoded body.
+    ///
+    /// Set a url encoded HTTP body on the `Request`. This will overwrite any
+    /// previously set value for the body, Content-Type header and
+    /// Content-Length header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let request = Request::build(Verb::Post, "/")
+    ///     .url_encoded("key=value")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn url_encoded(self, body: impl Into<String>) -> Self {
+        let body = body.into();
+        let len = body.len();
+
+        self.body(body)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Content-Length", len.to_string())
+    }
 }
 
 /// A HTTP Request.
@@ -241,6 +289,26 @@ mod tests {
             .header("Key", "Overwritten")
             .header("Key", "Hello World");
         assert_eq!(expected, actual.headers);
+    }
+
+    #[test]
+    fn builder_json_success() {
+        let actual = Builder::new(Verb::Post, "/").json("{ ... }");
+        let expected = Builder::new(Verb::Post, "/")
+            .body("{ ... }")
+            .header("Content-Type", "application/json")
+            .header("Content-Length", "7");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn builder_url_encoded_success() {
+        let actual = Builder::new(Verb::Post, "/").url_encoded("key=value");
+        let expected = Builder::new(Verb::Post, "/")
+            .body("key=value")
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Content-Length", "9");
+        assert_eq!(expected, actual);
     }
 
     // impl Request
