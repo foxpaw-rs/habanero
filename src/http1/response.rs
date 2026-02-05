@@ -34,7 +34,7 @@ impl Builder {
     /// Create a new `Builder` via the `Response::build` method to invoke the
     /// builder pattern and build up a `Response`.
     fn new(code: Code) -> Self {
-        Self { 
+        Self {
             body: String::new(),
             code,
             headers: BTreeMap::new(),
@@ -45,7 +45,7 @@ impl Builder {
     ///
     /// Set a body on the `Response`. This will overwrite any previously set
     /// value.
-    /// 
+    ///
     /// # Examples
     /// ```rust
     /// use habanero::http1::*;
@@ -87,7 +87,7 @@ impl Builder {
     /// # Examples
     /// ```rust
     /// use habanero::http1::*;
-    /// 
+    ///
     /// let response = Response::build(Code::Ok)
     ///     .header("Content-Type", "text/plain")
     ///     .create();
@@ -96,6 +96,75 @@ impl Builder {
     pub fn header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.headers.insert(key.into(), value.into());
         self
+    }
+
+    /// Set a `Response` HTML body.
+    ///
+    /// Set an HTML body on the `Response`. This will overwrite any previously
+    /// set value for the response body, Content-Type header and Content-Length
+    /// header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let response = Response::build(Code::Ok)
+    ///     .html("<html></html>")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn html(self, body: impl Into<String>) -> Self {
+        let body = body.into();
+        let len = body.len().to_string();
+        self.body(body)
+            .header("Content-Type", "text/html")
+            .header("Content-Length", len)
+    }
+
+    /// Set a `Response` JSON body.
+    ///
+    /// Set a JSON body on the `Response`. This will overwrite any previously
+    /// set value for the response body, Content-Type header and Content-Length
+    /// header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let response = Response::build(Code::Ok)
+    ///     .json("{ }")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn json(self, body: impl Into<String>) -> Self {
+        let body = body.into();
+        let len = body.len().to_string();
+        self.body(body)
+            .header("Content-Type", "application/json")
+            .header("Content-Length", len)
+    }
+
+    /// Set a `Response` url encoded body.
+    ///
+    /// Set a url encoded body on the `Response`. This will overwrite any
+    /// previously set value for the response body, Content-Type header and
+    /// Content-Length header.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let response = Response::build(Code::Ok)
+    ///     .url_encoded("key=value")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn url_encoded(self, body: impl Into<String>) -> Self {
+        let body = body.into();
+        let len = body.len().to_string();
+        self.body(body)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Content-Length", len)
     }
 }
 
@@ -128,7 +197,11 @@ impl Response {
     /// Creates a new response, invoked via the `Builder::create` method to
     /// finalize the construction of the `Response`.
     fn new(code: Code, headers: BTreeMap<String, String>, body: String) -> Self {
-        Self { body, code, headers }
+        Self {
+            body,
+            code,
+            headers,
+        }
     }
 
     /// Build a new `Response`.
@@ -239,7 +312,7 @@ mod tests {
         let expected = Builder {
             body: String::new(),
             code: Code::Ok,
-            headers: BTreeMap::new()
+            headers: BTreeMap::new(),
         };
         let actual = Builder::new(Code::Ok);
         assert_eq!(expected, actual);
@@ -267,7 +340,7 @@ mod tests {
         let expected = Response {
             body: String::new(),
             code: Code::Ok,
-            headers: BTreeMap::new()
+            headers: BTreeMap::new(),
         };
         let actual = Builder::new(Code::Ok).create();
         assert_eq!(expected, actual);
@@ -275,9 +348,7 @@ mod tests {
 
     #[test]
     fn builder_header_success() {
-        let expected = BTreeMap::from([
-            (String::from("Content-Type"), String::from("text/plain"))
-        ]);
+        let expected = BTreeMap::from([(String::from("Content-Type"), String::from("text/plain"))]);
         let actual = Builder::new(Code::Ok)
             .header("Content-Type", "text/plain")
             .headers;
@@ -286,9 +357,7 @@ mod tests {
 
     #[test]
     fn builder_header_overwrite() {
-        let expected = BTreeMap::from([
-            (String::from("Content-Type"), String::from("text/plain"))
-        ]);
+        let expected = BTreeMap::from([(String::from("Content-Type"), String::from("text/plain"))]);
         let actual = Builder::new(Code::Ok)
             .header("Content-Type", "application/json")
             .header("Content-Type", "text/plain")
@@ -296,6 +365,35 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
+    #[test]
+    fn builder_html_success() {
+        let expected = Builder::new(Code::Ok)
+            .header("Content-Type", "text/html")
+            .header("Content-Length", "13")
+            .body("<html></html>");
+        let actual = Builder::new(Code::Ok).html("<html></html>");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn builder_json_success() {
+        let expected = Builder::new(Code::Ok)
+            .header("Content-Type", "application/json")
+            .header("Content-Length", "3")
+            .body("{ }");
+        let actual = Builder::new(Code::Ok).json("{ }");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn builder_url_encoded_success() {
+        let expected = Builder::new(Code::Ok)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Content-Length", "9")
+            .body("key=value");
+        let actual = Builder::new(Code::Ok).url_encoded("key=value");
+        assert_eq!(expected, actual);
+    }
 
     // impl Response
 
@@ -304,7 +402,7 @@ mod tests {
         let expected = Response {
             body: String::new(),
             code: Code::Ok,
-            headers: BTreeMap::new()
+            headers: BTreeMap::new(),
         };
         let actual = Response::new(Code::Ok, BTreeMap::new(), String::new());
         assert_eq!(expected, actual);
@@ -315,7 +413,7 @@ mod tests {
         let expected = Builder {
             body: String::new(),
             code: Code::Ok,
-            headers: BTreeMap::new()
+            headers: BTreeMap::new(),
         };
         let actual = Response::build(Code::Ok);
         assert_eq!(expected, actual);
