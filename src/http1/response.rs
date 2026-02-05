@@ -2,6 +2,8 @@
 //!
 //! Todo(Paul): Module documentation
 
+use std::collections::BTreeMap;
+
 /// HTTP Response Builder.
 ///
 /// Utilizes the builder pattern to fluently construct a `Response`. Each
@@ -14,13 +16,16 @@
 /// ```rust
 /// use habanero::http1::*;
 ///
-/// // Todo(Paul): Add more once body and headers implemented.
 /// let response = Response::build(Code::Ok)
+///     .header("Content-Type", "text/plain")
+///     .body("Hello World")
 ///     .create();
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Builder {
+    body: String,
     code: Code,
+    headers: BTreeMap<String, String>,
 }
 
 impl Builder {
@@ -29,7 +34,30 @@ impl Builder {
     /// Create a new `Builder` via the `Response::build` method to invoke the
     /// builder pattern and build up a `Response`.
     fn new(code: Code) -> Self {
-        Self { code }
+        Self { 
+            body: String::new(),
+            code,
+            headers: BTreeMap::new(),
+        }
+    }
+
+    /// Set a `Response` body.
+    ///
+    /// Set a body on the `Response`. This will overwrite any previously set
+    /// value.
+    /// 
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let response = Response::build(Code::Ok)
+    ///     .body("Hello World")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn body(mut self, body: impl Into<String>) -> Self {
+        self.body = body.into();
+        self
     }
 
     /// Create the built `Response`.
@@ -41,13 +69,33 @@ impl Builder {
     /// ```rust
     /// use habanero::http1::*;
     ///
-    /// // Todo(Paul): Add more once body and headers implemented.
     /// let response = Response::build(Code::Ok)
+    ///     .header("Content-Type", "text/plain")
+    ///     .body("Hello World")
     ///     .create();
     /// ```
     #[must_use]
     pub fn create(self) -> Response {
-        Response::new(self.code)
+        Response::new(self.code, self.headers, self.body)
+    }
+
+    /// Set a `Response` header.
+    ///
+    /// Set a header on the `Response`. This will overwrite any previously set
+    /// value for that header key.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    /// 
+    /// let response = Response::build(Code::Ok)
+    ///     .header("Content-Type", "text/plain")
+    ///     .create();
+    /// ```
+    #[must_use]
+    pub fn header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.headers.insert(key.into(), value.into());
+        self
     }
 }
 
@@ -62,13 +110,16 @@ impl Builder {
 /// ```rust
 /// use habanero::http1::*;
 ///
-/// // Todo(Paul): Add more once body and headers implemented.
 /// let response = Response::build(Code::Ok)
+///     .header("Content-Type", "text/plain")
+///     .body("Hello World")
 ///     .create();
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Response {
+    body: String,
     code: Code,
+    headers: BTreeMap<String, String>,
 }
 
 impl Response {
@@ -76,8 +127,8 @@ impl Response {
     ///
     /// Creates a new response, invoked via the `Builder::create` method to
     /// finalize the construction of the `Response`.
-    fn new(code: Code) -> Self {
-        Self { code }
+    fn new(code: Code, headers: BTreeMap<String, String>, body: String) -> Self {
+        Self { body, code, headers }
     }
 
     /// Build a new `Response`.
@@ -185,30 +236,87 @@ mod tests {
 
     #[test]
     fn builder_new_success() {
-        let expected = Builder { code: Code::Ok };
+        let expected = Builder {
+            body: String::new(),
+            code: Code::Ok,
+            headers: BTreeMap::new()
+        };
         let actual = Builder::new(Code::Ok);
         assert_eq!(expected, actual);
     }
 
     #[test]
+    fn builder_body_success() {
+        let expected = "Hello World";
+        let actual = Builder::new(Code::Ok).body("Hello World").body;
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn builder_body_overwrite() {
+        let expected = "Hello World";
+        let actual = Builder::new(Code::Ok)
+            .body("Overwritten")
+            .body("Hello World")
+            .body;
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn builder_create_success() {
-        let expected = Response { code: Code::Ok };
+        let expected = Response {
+            body: String::new(),
+            code: Code::Ok,
+            headers: BTreeMap::new()
+        };
         let actual = Builder::new(Code::Ok).create();
         assert_eq!(expected, actual);
     }
+
+    #[test]
+    fn builder_header_success() {
+        let expected = BTreeMap::from([
+            (String::from("Content-Type"), String::from("text/plain"))
+        ]);
+        let actual = Builder::new(Code::Ok)
+            .header("Content-Type", "text/plain")
+            .headers;
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn builder_header_overwrite() {
+        let expected = BTreeMap::from([
+            (String::from("Content-Type"), String::from("text/plain"))
+        ]);
+        let actual = Builder::new(Code::Ok)
+            .header("Content-Type", "application/json")
+            .header("Content-Type", "text/plain")
+            .headers;
+        assert_eq!(expected, actual);
+    }
+
 
     // impl Response
 
     #[test]
     fn response_new_success() {
-        let expected = Response { code: Code::Ok };
-        let actual = Response::new(Code::Ok);
+        let expected = Response {
+            body: String::new(),
+            code: Code::Ok,
+            headers: BTreeMap::new()
+        };
+        let actual = Response::new(Code::Ok, BTreeMap::new(), String::new());
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn response_build_success() {
-        let expected = Builder { code: Code::Ok };
+        let expected = Builder {
+            body: String::new(),
+            code: Code::Ok,
+            headers: BTreeMap::new()
+        };
         let actual = Response::build(Code::Ok);
         assert_eq!(expected, actual);
     }
