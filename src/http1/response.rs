@@ -2,6 +2,7 @@
 //!
 //! Todo(Paul): Module documentation
 
+use core::fmt::{self, Debug, Display, Formatter};
 use std::collections::BTreeMap;
 
 /// HTTP Response Builder.
@@ -294,6 +295,35 @@ impl Response {
     }
 }
 
+impl Display for Response {
+    /// Format the `Response`.
+    ///
+    /// Formats the `Response` into an HTTP compatible response format, able to
+    /// be sent to a server.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let response = Response::build(Code::Ok)
+    ///     .header("Content-Type", "text/plain")
+    ///     .body("Hello World")
+    ///     .create();
+    /// let string = response.to_string();
+    /// ```
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "HTTP/1.1 {}\n{}\n{}",
+            self.code,
+            self.headers.iter().fold(String::new(), |fold, pair| {
+                format!("{fold}{}: {}\n", pair.0, pair.1)
+            }),
+            self.body
+        )
+    }
+}
+
 /// The HTTP response codes.
 ///
 /// Representation of the supported HTTP response codes used to specify the
@@ -371,6 +401,95 @@ pub enum Code {
     LoopDetected = 508,
     NotExtended = 510,
     NetworkAuthenticationRequired = 511,
+}
+
+impl Display for Code {
+    /// Format the `Code`.
+    ///
+    /// Formats the `Code` into what would be expected for an HTTP response.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::Code;
+    ///
+    /// let code = Code::Ok;
+    /// let string = code.to_string();
+    /// ```
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let readable = match self {
+            Code::Continue => "Continue",
+            Code::SwitchingProtocols => "Switching Protocols",
+            Code::Processing => "Processing",
+            Code::EarlyHints => "Early Hints",
+
+            // 2XX Successful Responses
+            Code::Ok => "OK",
+            Code::Created => "Created",
+            Code::Accepted => "Accepted",
+            Code::NonAuthoritativeInformation => "Non-Authoritative Information",
+            Code::NoContent => "No Content",
+            Code::ResetContent => "Reset Content",
+            Code::PartialContent => "Partial Content",
+            Code::MultiStatus => "Multi-Status",
+            Code::AlreadyReported => "Already Reported",
+            Code::IMUsed => "IM Used",
+
+            // 3XX Redirection Messages
+            Code::MultipleChoices => "Multiple Choices",
+            Code::MovedPermanently => "Moved Permanently",
+            Code::Found => "Found",
+            Code::SeeOther => "See Other",
+            Code::NotModified => "Not Modified",
+            Code::TemporaryRedirect => "Temporary Redirect",
+            Code::PermanentRedirect => "Permanent Redirect",
+
+            // 4XX Client Error Responses
+            Code::BadRequest => "Bad Request",
+            Code::Unauthorized => "Unauthorized",
+            Code::PaymentRequired => "Payment Required",
+            Code::Forbidden => "Forbidden",
+            Code::NotFound => "Not Found",
+            Code::MethodNotAllowed => "Method Not Allowed",
+            Code::NotAcceptable => "Not Acceptable",
+            Code::ProxyAuthenticationRequired => "Proxy Authentication Required",
+            Code::RequestTimeout => "Request Timeout",
+            Code::Conflict => "Conflict",
+            Code::Gone => "Gone",
+            Code::LengthRequired => "Length Required",
+            Code::PreconditionFailed => "Precondition Failed",
+            Code::ContentTooLarge => "Content Too Large",
+            Code::UriTooLong => "Uri Too Long",
+            Code::UnsupportedMediaType => "Unsupported Media Type",
+            Code::RangeNotSatisfiable => "Range Not Satisfiable",
+            Code::ExpectationFailed => "Expectation Failed",
+            Code::ImATeapot => "I'm a teapot",
+            Code::MisdirectedRequest => "Misdirected Request",
+            Code::UnprocessableContent => "Unprocessable Content",
+            Code::Locked => "Locked",
+            Code::FailedDependency => "Failed Dependency",
+            Code::TooEarly => "Too Early",
+            Code::UpgradeRequired => "Upgrade Required",
+            Code::PreconditionRequired => "Precondition Required",
+            Code::TooManyRequests => "Too Many Requests",
+            Code::RequestHeaderFieldsTooLarge => "Request Header Fields Too Large",
+            Code::UnavailableForLegalReasons => "Unavailable For Legal Reasons",
+
+            // 5XX Server Error Responses
+            Code::InternalServerError => "Internal Server Error",
+            Code::NotImplemented => "Not Implemented",
+            Code::BadGateway => "Bad Gateway",
+            Code::ServiceUnavailable => "Service Unavailable",
+            Code::GatewayTimeout => "Gateway Timeout",
+            Code::HTTPVersionNotSupported => "Http Version Not Supported",
+            Code::VariantAlsoNegotiates => "Variant Also Negotiates",
+            Code::InsufficientStorage => "Insufficient Storage",
+            Code::LoopDetected => "Loop Detected",
+            Code::NotExtended => "Not Extended",
+            Code::NetworkAuthenticationRequired => "Network Authentication Required",
+        };
+        let code = *self as u16;
+        write!(f, "{code} {readable}")
+    }
 }
 
 #[cfg(test)]
@@ -536,5 +655,62 @@ mod tests {
             .create();
         let actual = response.headers();
         assert_eq!(expected, *actual);
+    }
+
+    // impl Display for Response
+
+    #[test]
+    fn request_fmt_success() {
+        let expected = "\
+        HTTP/1.1 200 OK\n\
+        Content-Length: 11\n\
+        Content-Type: text/plain\n\n\
+        Hello World";
+
+        let actual = Response::build(Code::Ok)
+            .header("Content-Type", "text/plain")
+            .header("Content-Length", "11")
+            .body("Hello World")
+            .create()
+            .to_string();
+
+        assert_eq!(expected, actual);
+    }
+
+    // impl Display for Code
+
+    #[test]
+    fn version_fmt_default() {
+        let expected = "404 Not Found";
+        let actual = Code::NotFound.to_string();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn version_fmt_ok() {
+        let expected = "200 OK";
+        let actual = Code::Ok.to_string();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn version_fmt_non_authoritative_information() {
+        let expected = "203 Non-Authoritative Information";
+        let actual = Code::NonAuthoritativeInformation.to_string();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn version_fmt_multi_status() {
+        let expected = "207 Multi-Status";
+        let actual = Code::MultiStatus.to_string();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn version_fmt_im_a_teapot() {
+        let expected = "418 I'm a teapot";
+        let actual = Code::ImATeapot.to_string();
+        assert_eq!(expected, actual);
     }
 }
