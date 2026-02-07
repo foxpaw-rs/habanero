@@ -1,6 +1,76 @@
 //! HTTP/1.1 responses.
 //!
-//! Todo(Paul): Module documentation
+//! # Response format.
+//! As an HTTP response format has a number of optional fields, a `Response` is
+//! initially built via a `Builder`. This allows for the addition of optional
+//! fields without requiring the `Response` to be mutable at any point.
+//!
+//! The HTTP response format requires a version and status code. Headers and the
+//! response body are optional. For example both the following are valid HTTP
+//! responses.
+//!
+//! ```text
+//! // Without headers and a response body.
+//! HTTP/1.1 200 OK
+//!
+//! // Providing headers and a response body.
+//! HTTP/1.1 200 OK
+//! Content-Type: text/plain
+//! Content-Length: 11
+//!
+//! Hello World
+//! ```
+//!
+//! As a status code is required, it  must be initially passed to the build
+//! method on `Response`. Headers and a body can then be added by calling the
+//! relevant methods on the `Builder`. The same responses above would be
+//! constructed as so.
+//!
+//! ```rust
+//! use habanero::http1::*;
+//!
+//! // Without headers and a response body.
+//! Response::build(Code::Ok).create();
+//!
+//! // Providing headers and a response body.
+//! Response::build(Code::Ok)
+//!     .header("Content-Type", "text/plain")
+//!     .header("Content-Length", "11")
+//!     .body("Hello World")
+//!     .create();
+//! ```
+//!
+//! The building process also provides shortcut methods for setting the response
+//! to contain json, html or form url-encoded data, by also setting the
+//! `Content-Type` and `Content-Length` header fields.
+//!
+//! ```rust
+//! use habanero::http1::*;
+//!
+//! let json = Response::build(Code::Ok)
+//!     .json("{ }")
+//!     .create();
+//!
+//! let html = Response::build(Code::Ok)
+//!     .html("<html></html>")
+//!     .create();
+//!
+//! let url = Response::build(Code::Ok)
+//!     .url_encoded("key=value")
+//!     .create();
+//! ```
+//!
+//! # Accessing Response data
+//! To access the internal Response data once constructed, access methods are
+//! provided on the Response type itself.
+//!
+//! ```rust
+//! use habanero::http1::*;
+//!
+//! let response = Response::build(Code::Ok)
+//!     .create();
+//! let code = response.code();
+//! ```
 
 use core::fmt::{self, Debug, Display, Formatter};
 use std::collections::BTreeMap;
