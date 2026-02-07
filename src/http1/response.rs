@@ -204,6 +204,24 @@ impl Response {
         }
     }
 
+    /// Retrieve the `Response` body.
+    ///
+    /// Retrieve an immutable reference to the body stored in the `Response`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let response = Response::build(Code::Ok)
+    ///     .body("Hello World")
+    ///     .create();
+    /// let body = response.body();
+    /// ```
+    #[must_use]
+    pub fn body(&self) -> &str {
+        &self.body
+    }
+
     /// Build a new `Response`.
     ///
     /// Creates a `Builder`, used to construct the `Response`. `Responses` are
@@ -218,6 +236,61 @@ impl Response {
     #[must_use]
     pub fn build(code: Code) -> Builder {
         Builder::new(code)
+    }
+
+    /// Retrieve the `Response` code.
+    ///
+    /// Retrieve an immutable reference to the code stored in the `Response`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let response = Response::build(Code::Ok)
+    ///     .create();
+    /// let code = response.code();
+    /// ```
+    #[must_use]
+    pub fn code(&self) -> &Code {
+        &self.code
+    }
+
+    /// Retrieve the requested `Response` header.
+    ///
+    /// Retrieve an immutable reference to the requested header stored in the
+    /// `Response`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let response = Response::build(Code::Ok)
+    ///     .header("Content-Type", "text/plain")
+    ///     .create();
+    /// let header = response.header("Content-Type");
+    /// ```
+    #[must_use]
+    pub fn header(&self, key: impl Into<String>) -> Option<&str> {
+        self.headers.get(&key.into()).map(String::as_str)
+    }
+
+    /// Retrieve the `Response` headers.
+    ///
+    /// Retrieve an immutable reference to the headers stored in the
+    /// `Response`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use habanero::http1::*;
+    ///
+    /// let response = Response::build(Code::Ok)
+    ///     .header("Content-Type", "text/plain")
+    ///     .create();
+    /// let headers = response.headers();
+    /// ```
+    #[must_use]
+    pub fn headers(&self) -> &BTreeMap<String, String> {
+        &self.headers
     }
 }
 
@@ -409,6 +482,14 @@ mod tests {
     }
 
     #[test]
+    fn response_body_success() {
+        let expected = "Hello World";
+        let response = Response::build(Code::Ok).body("Hello World").create();
+        let actual = response.body();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn response_build_success() {
         let expected = Builder {
             body: String::new(),
@@ -417,5 +498,43 @@ mod tests {
         };
         let actual = Response::build(Code::Ok);
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn response_code_success() {
+        let expected = Code::Ok;
+        let response = Response::build(Code::Ok).create();
+        let actual = response.code();
+        assert_eq!(expected, *actual);
+    }
+
+    #[test]
+    fn response_header_success() {
+        let expected = Some("text/plain");
+        let response = Response::build(Code::Ok)
+            .header("Content-Type", "text/plain")
+            .create();
+        let actual = response.header("Content-Type");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn response_header_missing() {
+        let expected = None;
+        let response = Response::build(Code::Ok)
+            .header("Content-Type", "text/plain")
+            .create();
+        let actual = response.header("Content-Length");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn response_headers_success() {
+        let expected = BTreeMap::from([(String::from("Content-Type"), String::from("text/plain"))]);
+        let response = Response::build(Code::Ok)
+            .header("Content-Type", "text/plain")
+            .create();
+        let actual = response.headers();
+        assert_eq!(expected, *actual);
     }
 }
