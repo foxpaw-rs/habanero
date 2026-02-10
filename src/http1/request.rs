@@ -1,4 +1,4 @@
-//! HTTP/1.1 requests.
+//! HTTP/1.1 Requests.
 //!
 //! # Request format
 //! As an HTTP/1.1 request format has a number of optional fields, a `Request`
@@ -218,7 +218,7 @@ impl Builder {
     }
 }
 
-/// A HTTP Request.
+/// An HTTP Request.
 ///
 /// Stores information about the HTTP request, either received from a socket
 /// (or `Server`), or built to be sent via a connection (or `Client`).

@@ -1,4 +1,4 @@
-//! HTTP/1.1 responses.
+//! HTTP/1.1 Responses.
 //!
 //! # Response format.
 //! As an HTTP response format has a number of optional fields, a `Response` is
