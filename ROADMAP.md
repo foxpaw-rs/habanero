@@ -3,8 +3,6 @@
 ## Version 0.1
 
 ### Todo
-- [ ] Types
-: Create the shared types used by the server and client side of the library. This includes a `Version` enum, `Method` enum, `Status` enum, `Headers` struct, `Request` struct and `Response` struct under the `type` module.
 - [ ] Transport
 : Create the transport layer, including a `Transport` trait and `Tcp` struct implementation under the `transport` module.
 - [ ] Parsers
@@ -19,5 +17,7 @@
 : Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Doing
+- [/] Common
+: Create the shared types used by the server and client side of the library. This includes a `Version` enum, `Method` enum, `Headers` struct, `Url` struct, `Request` struct and `Response` struct under the `common` module.
 
 ### Done
