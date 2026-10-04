@@ -12,7 +12,7 @@
 //! [`Request`] and/or [`Response`]:
 //! * [`Method`], an enumeration of the supported HTTP methods;
 //! * [`Headers`], representing the HTTP headers;
-//! * [`Scheme`], representing the URL Scheme.
+//! * [`Scheme`], an enumeration of the supported URL schemes;
 //! * [`Url`], representing a URL; and
 //! * [`Version`], representing the HTTP version.
 //!
@@ -51,7 +51,7 @@ use std::str::FromStr;
 /// A map of HTTP headers, used by [`Request`] and [`Response`]. Headers are
 /// retrieved case-insensitively and stored as provided.
 ///
-/// The `Headers` supports duplicate keys and does not overwrite the previous
+/// `Headers` supports duplicate keys and does not overwrite the previous
 /// value for a given key. This is particularly useful in the case of setting
 /// and receiving HTTP Cookies for example.
 ///
@@ -84,8 +84,8 @@ impl Headers {
     /// New
     ///
     /// Create a new empty `Headers` instance. Note that the [`Request`] and
-    /// [`Response`] structs will create their own `Headers` and it is highly
-    /// unlikely that as a consumer of the crate you will need to create one.
+    /// [`Response`] structs will create their own `Headers` and it is unusual
+    /// that as a consumer of the crate you will need to create one.
     ///
     /// # Examples
     /// ```rust
@@ -101,8 +101,8 @@ impl Headers {
     /// Find
     ///
     /// Find the first occurrence of a header within the `Headers`. The
-    /// first occurrence is determined by order of insertion within the
-    /// `Headers`. Finding is a case-insensitive operation.
+    /// first occurrence is determined by order of insertion. Find is a
+    /// case-insensitive operation.
     ///
     /// # Examples
     /// ```rust
@@ -586,8 +586,8 @@ impl FromStr for Url {
     /// implicitly from `str::parse`.
     ///
     /// # Errors
-    /// Method will error with a `String` type if the supplied string is not a
-    /// valid HTTP URL, or an unsupported [`Scheme`] is specified.
+    /// Method will error with a `String` type if the supplied string does not
+    /// have a scheme or an unsupported scheme is specified.
     ///
     /// # Examples
     /// ```rust
@@ -612,7 +612,7 @@ impl FromStr for Url {
     /// assert!("Unknown".parse::<Url>().is_err());
     ///
     /// // Unsupported URL scheme
-    /// assert!(Url::from_str("https://rust-lang.org").is_err());
+    /// assert!(Url::from_str("ftp://rust-lang.org").is_err());
     /// ```
     fn from_str(from: &str) -> Result<Self, Self::Err> {
         let (scheme, rest) = match from.split_once("://") {
