@@ -12,11 +12,37 @@
 //! [`Request`] and/or [`Response`]:
 //! * [`Method`], an enumeration of the supported HTTP methods;
 //! * [`Headers`], representing the HTTP headers;
+//! * [`Scheme`], representing the URL Scheme.
 //! * [`Url`], representing a URL; and
 //! * [`Version`], representing the HTTP version.
 //!
 //! # Examples
-//! Todo: Populate once all types are completed
+//! ## Creating a [`Request`]
+//! ```rust
+//! use foxpaw_habanero::*;
+//!
+//! fn create_request() -> Result<Request, String> {
+//!     let request = Request::new(
+//!             Method::Get, "http://rust-lang.org".parse()?, Version::Http11
+//!         )
+//!         .with_header("my-value", "My Header")
+//!         .with_body("Hello World");
+//!     Ok(request)
+//! }
+//! ```
+//!
+//! ## Creating a [`Response`]
+//! ```rust
+//! use foxpaw_habanero::*;
+//!
+//! fn create_response() -> Result<Response, String> {
+//!     let response = Response::new(Version::Http11, 200)
+//!         .html("<html></html>")
+//!         .with_header("my-value", "My Header")
+//!         .with_body("Hello World");
+//!     Ok(response)
+//! }
+//! ```
 
 use std::str::FromStr;
 
@@ -283,6 +309,56 @@ impl Request {
             body: Vec::new(),
         }
     }
+
+    /// With Body
+    ///
+    /// Fluently sets a body on this `Request`, consuming the original object
+    /// and returning the updated instance.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// fn create_request() -> Result<Request, String> {
+    ///     let request = Request::new(
+    ///             Method::Get,
+    ///             "http://rust-lang.org".parse()?,
+    ///             Version::Http11
+    ///         )
+    ///         .with_body("Hello World");
+    ///     Ok(request)
+    /// }
+    /// ```
+    #[must_use]
+    pub fn with_body(mut self, body: impl Into<Vec<u8>>) -> Self {
+        self.body = body.into();
+        self
+    }
+
+    /// With Header
+    ///
+    /// Fluently sets a header on this `Request`, consuming the original object
+    /// and returning the updated instance.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// fn create_request() -> Result<Request, String> {
+    ///     let request = Request::new(
+    ///             Method::Get,
+    ///             "http://rust-lang.org".parse()?,
+    ///             Version::Http11
+    ///         )
+    ///         .with_header("Content-Type", "application/json");
+    ///     Ok(request)
+    /// }
+    /// ```
+    #[must_use]
+    pub fn with_header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.headers = self.headers.insert(key, value);
+        self
+    }
 }
 
 /// `Response`
@@ -408,6 +484,48 @@ impl Response {
             .insert("Content-Type", "application/json")
             .insert("Content-Length", b.len().to_string());
         self.body = b;
+        self
+    }
+
+    /// With Body
+    ///
+    /// Fluently sets a body on this `Response`, consuming the original object
+    /// and returning the updated instance.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// fn create_response() -> Result<Response, String> {
+    ///     let response = Response::new(Version::Http11, 200)
+    ///         .with_body("Hello World");
+    ///     Ok(response)
+    /// }
+    /// ```
+    #[must_use]
+    pub fn with_body(mut self, body: impl Into<Vec<u8>>) -> Self {
+        self.body = body.into();
+        self
+    }
+
+    /// With Header
+    ///
+    /// Fluently sets a header on this `Response`, consuming the original object
+    /// and returning the updated instance.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// fn create_response() -> Result<Response, String> {
+    ///     let response = Response::new(Version::Http11, 200)
+    ///         .with_header("Content-Type", "application/json");
+    ///     Ok(response)
+    /// }
+    /// ```
+    #[must_use]
+    pub fn with_header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.headers = self.headers.insert(key, value);
         self
     }
 }
@@ -710,6 +828,30 @@ mod tests {
     }
 
     #[test]
+    fn request_with_body_correct() {
+        let expected = "Hello World".as_bytes();
+        let actual = Request::new(
+            Method::Get,
+            "http://rust-lang.org".parse().unwrap(),
+            Version::Http11,
+        )
+        .with_body("Hello World");
+        assert_eq!(actual.body, expected);
+    }
+
+    #[test]
+    fn request_with_header_correct() {
+        let expected = Headers::new().insert("Content-Type", "application/json");
+        let actual = Request::new(
+            Method::Get,
+            "http://rust-lang.org".parse().unwrap(),
+            Version::Http11,
+        )
+        .with_header("Content-Type", "application/json");
+        assert_eq!(actual.headers, expected);
+    }
+
+    #[test]
     fn response_new_correct() {
         let expected = Response {
             version: Version::Http11,
@@ -738,6 +880,21 @@ mod tests {
         );
         assert_eq!(actual.headers.find("Content-Length"), Some("11"));
         assert_eq!(actual.body, "{value: 42}".as_bytes());
+    }
+
+    #[test]
+    fn response_with_body_correct() {
+        let expected = "Hello World".as_bytes();
+        let actual = Response::new(Version::Http11, 200).with_body("Hello World");
+        assert_eq!(actual.body, expected);
+    }
+
+    #[test]
+    fn response_with_header_correct() {
+        let expected = Headers::new().insert("Content-Type", "application/json");
+        let actual =
+            Response::new(Version::Http11, 200).with_header("Content-Type", "application/json");
+        assert_eq!(actual.headers, expected);
     }
 
     #[test]
