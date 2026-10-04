@@ -33,13 +33,11 @@ use std::str::FromStr;
 /// ```rust
 /// use foxpaw_habanero::Headers;
 ///
-/// let mut headers = Headers::new();
-///
-/// // Insert some values
-/// headers.insert("Content-Type", "text/html");
-/// headers.insert("Content-Length", "80");
-/// headers.insert("Custom-Header", "a");
-/// headers.insert("Custom-Header", "b");
+/// let headers = Headers::new()
+///     .insert("Content-Type", "text/html")
+///     .insert("Content-Length", "80")
+///     .insert("Custom-Header", "a")
+///     .insert("Custom-Header", "b");
 ///
 /// // Retrieve a single value
 /// assert_eq!(headers.find("Content-Type"), Some("text/html"));
@@ -84,9 +82,9 @@ impl Headers {
     /// ```rust
     /// use foxpaw_habanero::Headers;
     ///
-    /// let mut headers = Headers::new();
-    /// headers.insert("my-value", "a");
-    /// headers.insert("my-value", "b");
+    /// let headers = Headers::new()
+    ///     .insert("my-value", "a")
+    ///     .insert("my-value", "b");
     ///
     /// assert_eq!(headers.find("my-value"), Some("a"));
     /// ```
@@ -107,9 +105,9 @@ impl Headers {
     /// ```rust
     /// use foxpaw_habanero::Headers;
     ///
-    /// let mut headers = Headers::new();
-    /// headers.insert("my-value", "a");
-    /// headers.insert("my-value", "b");
+    /// let headers = Headers::new()
+    ///     .insert("my-value", "a")
+    ///     .insert("my-value", "b");
     ///
     /// assert_eq!(headers.get("my-value"), vec!["a", "b"]);
     /// ```
@@ -128,16 +126,22 @@ impl Headers {
     /// the provided key. The inserted key will be entered in exactly as
     /// provided, and only retrieved case-insensitively.
     ///
+    /// Note that this method consumes and returns the altered `Headers`
+    /// instance and is deigned to be chained, invalidating the original
+    /// object.
+    ///
     /// # Examples
     /// ```rust
     /// use foxpaw_habanero::Headers;
     ///
-    /// let mut headers = Headers::new();
-    /// headers.insert("my-value", "a");
-    /// headers.insert("my-value", "b");
+    /// let headers = Headers::new()
+    ///     .insert("my-value", "a")
+    ///     .insert("my-value", "b");
     /// ```
-    pub fn insert(&mut self, key: impl Into<String>, value: impl Into<String>) {
+    #[must_use]
+    pub fn insert(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.inner.push((key.into(), value.into()));
+        self
     }
 
     /// Iter
@@ -212,6 +216,199 @@ impl FromStr for Method {
             "OPTIONS" => Ok(Method::Options),
             other => Err(format!("Unsupported HTTP method: {other}")),
         }
+    }
+}
+
+/// `Request`
+///
+/// An HTTP request, used both when receiving a HTTP request via a [`Server`]
+/// or prepared to be sent via a [`Client`].
+///
+/// # Examples
+/// ```rust
+/// use foxpaw_habanero::*;
+///
+/// fn send_request() -> Result<(), String> {
+///     let mut request = Request::new(Method::Get, "http://rust-lang.org".parse()?, Version::Http11);
+///
+///     // Do things with the request...
+///     request.body = "Hello World".into();
+///     Ok(())
+/// }
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Request {
+    /// The HTTP method
+    pub method: Method,
+
+    /// The URL endpoint
+    pub url: Url,
+
+    /// The HTTP version
+    pub version: Version,
+
+    /// The headers supplied to the HTTP request
+    pub headers: Headers,
+
+    /// The body of the HTTP request
+    pub body: Vec<u8>,
+}
+
+impl Request {
+    /// New
+    ///
+    /// Create a new empty `Request` instance with the provided HTTP method,
+    /// Url and HTTP version.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// fn create_request() -> Result<Request, String> {
+    ///     let request = Request::new(
+    ///         Method::Get,
+    ///         "http://rust-lang.org".parse()?,
+    ///         Version::Http11
+    ///     );
+    ///     Ok(request)
+    /// }
+    /// ```
+    #[must_use]
+    pub fn new(method: Method, url: Url, version: Version) -> Self {
+        Self {
+            method,
+            url,
+            version,
+            headers: Headers::new(),
+            body: Vec::new(),
+        }
+    }
+}
+
+/// `Response`
+///
+/// An HTTP response, used both when prepared to be sent via a [`Server`] or
+/// receiving a HTTP response via a [`Client`].
+///
+/// # Examples
+/// ```rust
+/// use foxpaw_habanero::*;
+///
+/// fn send_response() -> Result<(), String> {
+///     let mut response = Response::new(Version::Http11, 200);
+///
+///     // Do things with the response...
+///     response.body = "Hello World".into();
+///     Ok(())
+/// }
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Response {
+    /// The HTTP version
+    pub version: Version,
+
+    /// The HTTP status code
+    pub status: u16,
+
+    /// The headers supplied to the HTTP response
+    pub headers: Headers,
+
+    /// The body of the HTTP response
+    pub body: Vec<u8>,
+}
+
+impl Response {
+    /// New
+    ///
+    /// Create a new empty `Response` instance with the provided HTTP version
+    /// and status code,
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// fn create_response() -> Result<Response, String> {
+    ///     let response = Response::new(
+    ///         Version::Http11,
+    ///         200
+    ///     );
+    ///     Ok(response)
+    /// }
+    /// ```
+    #[must_use]
+    pub fn new(version: Version, status: u16) -> Self {
+        Self {
+            version,
+            status,
+            headers: Headers::new(),
+            body: Vec::new(),
+        }
+    }
+
+    /// Html
+    ///
+    /// Insert an HTML body into the `Response`. Automatically sets the
+    /// Content-Type and Content-Length headers based on the provided body.
+    ///
+    /// Note that this method consumes and returns the altered `Response`
+    /// instance and is deigned to be chained, invalidating the original
+    /// object.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// fn create_html() -> Result<Response, String> {
+    ///     let response = Response::new(
+    ///         Version::Http11,
+    ///         200
+    ///     )
+    ///     .html("<html></html>");
+    ///     Ok(response)
+    /// }
+    /// ```
+    #[must_use]
+    pub fn html(mut self, body: impl Into<Vec<u8>>) -> Self {
+        let b = body.into();
+        self.headers = self
+            .headers
+            .insert("Content-Type", "text/html")
+            .insert("Content-Length", b.len().to_string());
+        self.body = b;
+        self
+    }
+
+    /// Json
+    ///
+    /// Insert a JSON body into the `Response`. Automatically sets the
+    /// Content-Type and Content-Length headers based on the provided body.
+    ///
+    /// Note that this method consumes and returns the altered `Response`
+    /// instance and is deigned to be chained, invalidating the original
+    /// object.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// fn create_json() -> Result<Response, String> {
+    ///     let response = Response::new(
+    ///         Version::Http11,
+    ///         200
+    ///     )
+    ///     .json("{value: 42}");
+    ///     Ok(response)
+    /// }
+    /// ```
+    #[must_use]
+    pub fn json(mut self, body: impl Into<Vec<u8>>) -> Self {
+        let b = body.into();
+        self.headers = self
+            .headers
+            .insert("Content-Type", "application/json")
+            .insert("Content-Length", b.len().to_string());
+        self.body = b;
+        self
     }
 }
 
@@ -348,16 +545,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn header_map_new_correct() {
+    fn headers_new_correct() {
         let expected = Headers { inner: Vec::new() };
         let actual = Headers::new();
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn header_map_find_correct() {
-        let mut headers = Headers::new();
-        headers.insert("my-value", "a");
+    fn headers_find_correct() {
+        let headers = Headers::new().insert("my-value", "a");
 
         let expected = Some("a");
         let actual = headers.find("my-value");
@@ -366,10 +562,10 @@ mod tests {
     }
 
     #[test]
-    fn header_map_find_first() {
-        let mut headers = Headers::new();
-        headers.insert("my-value", "a");
-        headers.insert("my-value", "b");
+    fn headers_find_first() {
+        let headers = Headers::new()
+            .insert("my-value", "a")
+            .insert("my-value", "b");
 
         let expected = Some("a");
         let actual = headers.find("my-value");
@@ -378,9 +574,8 @@ mod tests {
     }
 
     #[test]
-    fn header_map_find_case_insensitive() {
-        let mut headers = Headers::new();
-        headers.insert("my-value", "a");
+    fn headers_find_case_insensitive() {
+        let headers = Headers::new().insert("my-value", "a");
 
         let expected = Some("a");
         let actual = headers.find("MY-VALUE");
@@ -389,11 +584,10 @@ mod tests {
     }
 
     #[test]
-    fn header_map_find_missing() {
-        let mut headers = Headers::new();
-
-        headers.insert("my-value", "a");
-        headers.insert("my-value", "b");
+    fn headers_find_missing() {
+        let headers = Headers::new()
+            .insert("my-value", "a")
+            .insert("my-value", "b");
 
         let expected = None;
         let actual = headers.find("not-here");
@@ -402,9 +596,8 @@ mod tests {
     }
 
     #[test]
-    fn header_map_get_correct() {
-        let mut headers = Headers::new();
-        headers.insert("my-value", "a");
+    fn headers_get_correct() {
+        let headers = Headers::new().insert("my-value", "a");
 
         let expected = vec!["a"];
         let actual = headers.get("my-value");
@@ -413,10 +606,10 @@ mod tests {
     }
 
     #[test]
-    fn header_map_get_all() {
-        let mut headers = Headers::new();
-        headers.insert("my-value", "a");
-        headers.insert("my-value", "b");
+    fn headers_get_all() {
+        let headers = Headers::new()
+            .insert("my-value", "a")
+            .insert("my-value", "b");
 
         let expected = vec!["a", "b"];
         let actual = headers.get("my-value");
@@ -425,10 +618,10 @@ mod tests {
     }
 
     #[test]
-    fn header_map_get_case_insensitive() {
-        let mut headers = Headers::new();
-        headers.insert("my-value", "a");
-        headers.insert("My-Value", "b");
+    fn headers_get_case_insensitive() {
+        let headers = Headers::new()
+            .insert("my-value", "a")
+            .insert("My-Value", "b");
 
         let expected = vec!["a", "b"];
         let actual = headers.get("MY-VALUE");
@@ -437,11 +630,10 @@ mod tests {
     }
 
     #[test]
-    fn header_map_get_none() {
-        let mut headers = Headers::new();
-
-        headers.insert("my-value", "a");
-        headers.insert("my-value", "b");
+    fn headers_get_none() {
+        let headers = Headers::new()
+            .insert("my-value", "a")
+            .insert("my-value", "b");
 
         let expected = Vec::<&str>::new();
         let actual = headers.get("not-here");
@@ -450,36 +642,35 @@ mod tests {
     }
 
     #[test]
-    fn header_map_insert_correct() {
+    fn headers_insert_correct() {
         let expected = Headers {
             inner: vec![("My-Value".to_string(), "a".to_string())],
         };
-        let mut actual = Headers::new();
-        actual.insert("My-Value", "a");
+        let actual = Headers::new().insert("My-Value", "a");
 
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn header_map_insert_duplicate() {
+    fn headers_insert_duplicate() {
         let expected = Headers {
             inner: vec![
                 ("My-Value".to_string(), "a".to_string()),
                 ("My-Value".to_string(), "b".to_string()),
             ],
         };
-        let mut actual = Headers::new();
-        actual.insert("My-Value", "a");
-        actual.insert("My-Value", "b");
+        let actual = Headers::new()
+            .insert("My-Value", "a")
+            .insert("My-Value", "b");
 
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn header_map_iter_correct() {
-        let mut headers = Headers::new();
-        headers.insert("My-Value", "a");
-        headers.insert("My-Value", "b");
+    fn headers_iter_correct() {
+        let headers = Headers::new()
+            .insert("My-Value", "a")
+            .insert("My-Value", "b");
         let mut actual = headers.iter();
 
         assert!(actual.next().is_some());
@@ -499,6 +690,54 @@ mod tests {
         let expected = Err("Unsupported HTTP method: UNKNOWN".to_string());
         let actual = Method::from_str("unknown");
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn request_new_correct() {
+        let expected = Request {
+            method: Method::Get,
+            url: "http://rust-lang.org".parse().unwrap(),
+            version: Version::Http11,
+            headers: Headers::new(),
+            body: Vec::new(),
+        };
+        let actual = Request::new(
+            Method::Get,
+            "http://rust-lang.org".parse().unwrap(),
+            Version::Http11,
+        );
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn response_new_correct() {
+        let expected = Response {
+            version: Version::Http11,
+            status: 200,
+            headers: Headers::new(),
+            body: Vec::new(),
+        };
+        let actual = Response::new(Version::Http11, 200);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn response_html_correct() {
+        let actual = Response::new(Version::Http11, 200).html("<html></html>");
+        assert_eq!(actual.headers.find("Content-Type"), Some("text/html"));
+        assert_eq!(actual.headers.find("Content-Length"), Some("13"));
+        assert_eq!(actual.body, "<html></html>".as_bytes());
+    }
+
+    #[test]
+    fn response_json_correct() {
+        let actual = Response::new(Version::Http11, 200).json("{value: 42}");
+        assert_eq!(
+            actual.headers.find("Content-Type"),
+            Some("application/json")
+        );
+        assert_eq!(actual.headers.find("Content-Length"), Some("11"));
+        assert_eq!(actual.body, "{value: 42}".as_bytes());
     }
 
     #[test]
