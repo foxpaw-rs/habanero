@@ -201,7 +201,7 @@ impl FromStr for Method {
     /// // Invalid input string
     /// assert!(Method::from_str("Unknown").is_err());
     /// assert!("Unknown".parse::<Method>().is_err());
-    /// ````
+    /// ```
     fn from_str(from: &str) -> Result<Self, Self::Err> {
         match from.to_uppercase().as_str() {
             "GET" => Ok(Method::Get),
@@ -212,6 +212,123 @@ impl FromStr for Method {
             "OPTIONS" => Ok(Method::Options),
             other => Err(format!("Unsupported HTTP method: {other}")),
         }
+    }
+}
+
+/// `Scheme`
+///
+/// Enumerated HTTP Schemes supported by the crate.
+#[non_exhaustive]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Scheme {
+    Http,
+    Https,
+}
+
+/// `Url`
+///
+/// A URL which is used by the [`Client`] as the endpoint to target. This can
+/// be created manually, however, the most common and straightforward approach
+/// would be to parse a URL from a str using the implemented `FromStr` trait.
+///
+/// # Examples
+/// ```rust
+/// use foxpaw_habanero::{Url, Scheme};
+/// use std::str::FromStr;
+///
+/// let manual = Url {
+///     scheme: Scheme::Http,
+///     host: "rust-lang.org".to_string(),
+///     port: 80,
+///     path: "/".to_string(),
+/// };
+///
+/// let parsed = "http://rust-lang.org".parse();
+///
+/// assert_eq!(parsed, Ok(manual))
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Url {
+    /// The scheme (e.g. http://)
+    pub scheme: Scheme,
+
+    /// The host (e.g. rust-lang.org)
+    pub host: String,
+
+    /// The port to connect to (e.g. :80)
+    pub port: u16,
+
+    /// The remaining path from the url ("/documentation")
+    pub path: String,
+}
+
+impl FromStr for Url {
+    type Err = String;
+
+    /// From Str
+    ///
+    /// Try to convert from a `str` into a [`Url`]. Can be used explicitly or
+    /// implicitly from `str::parse`.
+    ///
+    /// # Errors
+    /// Method will error with a `String` type if the supplied string is not a
+    /// valid HTTP URL, or an unsupported [`Scheme`] is specified.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::{Scheme, Url};
+    /// use std::str::FromStr;
+    ///
+    /// let expected = Ok(Url {
+    ///     scheme: Scheme::Http,
+    ///     host: "rust-lang.org".to_string(),
+    ///     port: 80,
+    ///     path: "/".to_string()
+    /// });
+    ///
+    /// // Explicit calling from_str
+    /// assert_eq!(Url::from_str("http://rust-lang.org"), expected);
+    ///
+    /// // Implicitly via str::parse
+    /// assert_eq!("http://rust-lang.org".parse(), expected);
+    ///
+    /// // Invalid input string
+    /// assert!(Url::from_str("Unknown").is_err());
+    /// assert!("Unknown".parse::<Url>().is_err());
+    ///
+    /// // Unsupported URL scheme
+    /// assert!(Url::from_str("https://rust-lang.org").is_err());
+    /// ```
+    fn from_str(from: &str) -> Result<Self, Self::Err> {
+        let (scheme, rest) = match from.split_once("://") {
+            Some((s, r)) if s.eq_ignore_ascii_case("http") => Ok((Scheme::Http, r)),
+            Some((s, _)) if s.eq_ignore_ascii_case("https") => {
+                Err("Https currently not supported".to_string())
+            }
+            Some((s, _)) => Err(format!("Unsupported scheme: {s}")),
+            None => Err("URL must be in the format [scheme]:://[host][:port?][path]".to_string()),
+        }?;
+
+        let (rest, path) = match rest.find('/') {
+            Some(idx) => (&rest[..idx], rest[idx..].to_string()),
+            None => (rest, "/".to_string()),
+        };
+
+        let (host, port) = match rest.split_once(':') {
+            Some((h, p)) => (
+                h.to_string(),
+                p.parse::<u16>()
+                    .map_err(|p| format!("Invalid port number: {p}"))?,
+            ),
+            None => (rest.to_string(), 80),
+        };
+
+        Ok(Url {
+            scheme,
+            host,
+            port,
+            path,
+        })
     }
 }
 
@@ -382,5 +499,80 @@ mod tests {
         let expected = Err("Unsupported HTTP method: UNKNOWN".to_string());
         let actual = Method::from_str("unknown");
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn url_from_str_correct() {
+        let expected = Url {
+            scheme: Scheme::Http,
+            host: "rust-lang.org".to_string(),
+            port: 80,
+            path: "/".to_string(),
+        };
+        let actual = "http://rust-lang.org".parse();
+        assert_eq!(actual, Ok(expected));
+    }
+
+    #[test]
+    fn url_from_str_https() {
+        // let expected = Url {
+        //     scheme: Scheme::Http,
+        //     host: "rust-lang.org".to_string(),
+        //     port: 80,
+        //     path: "/".to_string(),
+        // };
+        // let actual = "http://rust-lang.org".parse();
+        let actual = "https://rust-lang.org".parse::<Url>();
+        assert!(actual.is_err());
+    }
+
+    #[test]
+    fn url_from_str_unsupported_scheme() {
+        let expected = "Unsupported scheme: ftp".to_string();
+        let actual = "ftp://rust-lang.org".parse::<Url>();
+        assert_eq!(actual, Err(expected));
+    }
+
+    #[test]
+    fn url_from_str_missing_scheme() {
+        let expected = "URL must be in the format [scheme]:://[host][:port?][path]".to_string();
+        let actual = "rust-lang.org".parse::<Url>();
+        assert_eq!(actual, Err(expected));
+    }
+
+    #[test]
+    fn url_from_str_port() {
+        let expected = Url {
+            scheme: Scheme::Http,
+            host: "rust-lang.org".to_string(),
+            port: 8080,
+            path: "/".to_string(),
+        };
+        let actual = "http://rust-lang.org:8080".parse();
+        assert_eq!(actual, Ok(expected));
+    }
+
+    #[test]
+    fn url_from_str_path() {
+        let expected = Url {
+            scheme: Scheme::Http,
+            host: "rust-lang.org".to_string(),
+            port: 80,
+            path: "/documentation".to_string(),
+        };
+        let actual = "http://rust-lang.org/documentation".parse();
+        assert_eq!(actual, Ok(expected));
+    }
+
+    #[test]
+    fn url_from_str_port_path() {
+        let expected = Url {
+            scheme: Scheme::Http,
+            host: "rust-lang.org".to_string(),
+            port: 8080,
+            path: "/documentation".to_string(),
+        };
+        let actual = "http://rust-lang.org:8080/documentation".parse();
+        assert_eq!(actual, Ok(expected));
     }
 }
