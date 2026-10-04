@@ -3,8 +3,6 @@
 ## Version 0.1
 
 ### Todo
-- [ ] Transport
-: Create the transport layer, including a `Transport` trait and `Tcp` struct implementation under the `transport` module.
 - [ ] Parsers
 : Create `Request` and `Response` under the `parser` module, which convert the raw request and response into `type/Request` and `type/Response` objects. Additionally, create `Request` and `Response` types under the `serialise` module, which do the inverse and serialise `type/Request` and `type/Response` objects ready for sending.
 - [ ] Connection
@@ -17,6 +15,8 @@
 : Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Doing
+- [/] Transport
+: Create the transport layer, including a `Transport` trait and `Tcp` struct implementation under the `transport` module.
 
 ### Done
 - [x] Common
