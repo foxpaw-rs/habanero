@@ -1,6 +1,30 @@
 //! Transport
 //!
-//! Todo: Module documentation
+//! This module houses the transport data types. These types wrap and handle
+//! any connection to an external source (e.g. TCP, TLS or local connection for
+//! testing).
+//! 
+//! # Architecture
+//! This module primarily provides the [`Transport`] trait to define the 
+//! requirements of any other type defined in this module.
+//! 
+//! It also exposes implementing types, being:
+//! * [`Tcp`], a connection over TCP.
+//!
+//! # Examples
+//! ## Using a [`Tcp`]
+//! ```rust, no_run
+//! use foxpaw_habanero::transport::*;
+//! use std::net::TcpStream;
+//!
+//! pub fn tcp_transport() -> std::io::Result<()> {
+//!     let mut transport = Tcp::new(TcpStream::connect("127.0.0.1")?);
+//!
+//!     // Read and write data over Tcp
+//!     let mut read_buffer = [0_u8; 100];
+//!     let num_read_bytes = transport.read(&mut read_buffer)?;
+//!     Ok(())
+//! }
 
 use std::io;
 pub use std::io::{Read, Write};
@@ -10,7 +34,7 @@ pub use std::time::Duration;
 /// `Tcp`
 ///
 /// Transport implementation over a TCP connection. This implementation only
-/// supports plain text transportation of data and is unencypted (e.g. http
+/// supports plain text transportation of data and is unencrypted (e.g. http
 /// connections).
 ///
 /// # Examples
@@ -44,7 +68,7 @@ pub struct Tcp {
 impl Tcp {
     /// New
     ///
-    /// Create a new Tcp instance over the provided `TcpStream`.
+    /// Create a new `Tcp` instance over the provided `TcpStream`.
     ///
     /// # Examples
     /// ```rust, no_run
@@ -96,9 +120,8 @@ impl Read for Tcp {
 impl Transport for Tcp {
     /// Set Read Timeout
     ///
-    /// Set the read timeout for this `Transport` type by the specified
-    /// duration. If None is passed as the duration the Transport will block
-    /// forever.
+    /// Set the read timeout for this `Tcp`  by the specified duration. If None
+    /// is passed as the duration the Transport will block indefinitely.
     ///
     /// # Errors
     /// Errors if a zero `Duration` is passed to this operation.
@@ -120,9 +143,8 @@ impl Transport for Tcp {
 
     /// Set Write Timeout
     ///
-    /// Set the write timeout for this `Transport` type by the specified
-    /// duration.If None is passed as the duration the Transport will block
-    /// forever.
+    /// Set the write timeout for this `Tcp` by the specified duration. If None
+    /// is passed as the duration the Transport will block indefinitely.
     ///
     /// # Errors
     /// Errors if a zero `Duration` is passed to this operation.
@@ -132,7 +154,7 @@ impl Transport for Tcp {
     /// use foxpaw_habanero::transport::*;
     /// use std::net::TcpStream;
     ///
-    /// pub fn read_timeout_tcp_transport() -> std::io::Result<()> {
+    /// pub fn write_timeout_tcp_transport() -> std::io::Result<()> {
     ///     let mut transport = Tcp::new(TcpStream::connect("127.0.0.1")?);
     ///     transport.set_write_timeout(Some(Duration::new(10, 0)))?;
     ///     Ok(())
@@ -144,7 +166,7 @@ impl Transport for Tcp {
 
     /// Peer Addr
     ///
-    /// Obtain the peer address the `Transport` is connected to.
+    /// Obtain the peer address this `Tcp` is connected to.
     ///
     /// # Errors
     /// Will error if there is no peer connected to this object.
@@ -166,7 +188,7 @@ impl Transport for Tcp {
 
     /// Shutdown
     ///
-    /// Shut down this `Transport` using the specified method.
+    /// Shut down this `Tcp` as specified.
     ///
     /// # Errors
     /// This method may error if called on an invalid, already closed or
@@ -221,7 +243,7 @@ impl Write for Tcp {
     /// reaches the destination.
     ///
     /// # Errors
-    /// It is considered an error if not all bytes could be written due to io
+    /// It is considered an error if not all bytes could be written due to I/O
     /// errors, or EOF being reached.
     ///
     /// # Examples
@@ -277,7 +299,7 @@ pub trait Transport: Read + Write + Send {
 
     /// Shutdown
     ///
-    /// Shut down this `Transport` using the specified method.
+    /// Shut down this `Transport` as specified.
     ///
     /// # Errors
     /// Will return an `std::io::Error` if the `Transport` cannot be shutdown

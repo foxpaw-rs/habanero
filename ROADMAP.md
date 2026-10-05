@@ -15,9 +15,9 @@
 : Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Doing
-- [/] Transport
-: Create the transport layer, including a `Transport` trait and `Tcp` struct implementation under the `transport` module.
 
 ### Done
+- [x] Transport
+: Create the transport layer, including a `Transport` trait and `Tcp` struct implementation under the `transport` module.
 - [x] Common
 : Create the shared types used by the server and client side of the library. This includes a `Version` enum, `Method` enum, `Headers` struct, `Url` struct, `Request` struct and `Response` struct under the `common` module.
