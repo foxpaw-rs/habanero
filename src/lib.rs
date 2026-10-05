@@ -8,6 +8,7 @@
     clippy::pedantic,
 )]
 
+pub mod codec;
 mod common;
 pub mod transport;
 

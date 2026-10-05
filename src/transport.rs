@@ -3,11 +3,11 @@
 //! This module houses the transport data types. These types wrap and handle
 //! any connection to an external source (e.g. TCP, TLS or local connection for
 //! testing).
-//! 
+//!
 //! # Architecture
-//! This module primarily provides the [`Transport`] trait to define the 
+//! This module primarily provides the [`Transport`] trait to define the
 //! requirements of any other type defined in this module.
-//! 
+//!
 //! It also exposes implementing types, being:
 //! * [`Tcp`], a connection over TCP.
 //!
