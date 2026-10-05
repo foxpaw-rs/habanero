@@ -44,7 +44,7 @@
 //! }
 //! ```
 
-use std::str::FromStr;
+pub use std::str::FromStr;
 
 /// `Headers`
 ///
