@@ -21,27 +21,19 @@
 //! ```rust
 //! use foxpaw_habanero::*;
 //!
-//! fn create_request() -> Result<Request, String> {
-//!     let request = Request::new(
-//!             Method::Get, "http://rust-lang.org".parse()?, Version::Http11
-//!         )
-//!         .with_header("my-value", "My Header")
-//!         .with_body("Hello World");
-//!     Ok(request)
-//! }
+//! let request = Request::new(Method::Get, "/", Version::Http11)
+//!     .with_header("my-value", "My Header")
+//!     .with_body("Hello World");
 //! ```
 //!
 //! ## Creating a [`Response`]
 //! ```rust
 //! use foxpaw_habanero::*;
 //!
-//! fn create_response() -> Result<Response, String> {
-//!     let response = Response::new(Version::Http11, 200)
-//!         .html("<html></html>")
-//!         .with_header("my-value", "My Header")
-//!         .with_body("Hello World");
-//!     Ok(response)
-//! }
+//! let response = Response::new(Version::Http11, 200)
+//!     .html("<html></html>")
+//!     .with_header("my-value", "My Header")
+//!     .with_body("Hello World");
 //! ```
 
 pub use std::str::FromStr;
@@ -214,6 +206,7 @@ impl FromStr for Method {
     /// # Errors
     /// Method will error with a `String` type if the supplied string is not a
     /// valid HTTP method.
+    /// Todo: Update to `ParseError::Invalid`
     ///
     /// # Examples
     /// ```rust
@@ -254,21 +247,22 @@ impl FromStr for Method {
 /// ```rust
 /// use foxpaw_habanero::*;
 ///
-/// fn send_request() -> Result<(), String> {
-///     let mut request = Request::new(Method::Get, "http://rust-lang.org".parse()?, Version::Http11);
+/// // Fluently create a request
+/// let mut request = Request::new(Method::Get, "/", Version::Http11)
+///     .with_header("Content-Type", "application/json")
+///     .with_header("Content-Length", "11")
+///     .with_body("{value: 80}");
 ///
-///     // Do things with the request...
-///     request.body = "Hello World".into();
-///     Ok(())
-/// }
+/// // Or update the request directly
+/// request.body = "Hello World".into();
 /// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Request {
     /// The HTTP method
     pub method: Method,
 
-    /// The URL endpoint
-    pub url: Url,
+    /// The URI endpoint
+    pub uri: String,
 
     /// The HTTP version
     pub version: Version,
@@ -284,26 +278,23 @@ impl Request {
     /// New
     ///
     /// Create a new empty `Request` instance with the provided HTTP method,
-    /// Url and HTTP version.
+    /// URI and HTTP version.
     ///
     /// # Examples
     /// ```rust
     /// use foxpaw_habanero::*;
     ///
-    /// fn create_request() -> Result<Request, String> {
-    ///     let request = Request::new(
-    ///         Method::Get,
-    ///         "http://rust-lang.org".parse()?,
-    ///         Version::Http11
-    ///     );
-    ///     Ok(request)
-    /// }
+    /// let request = Request::new(
+    ///     Method::Get,
+    ///     "/",
+    ///     Version::Http11
+    /// );
     /// ```
     #[must_use]
-    pub fn new(method: Method, url: Url, version: Version) -> Self {
+    pub fn new(method: Method, uri: impl Into<String>, version: Version) -> Self {
         Self {
             method,
-            url,
+            uri: uri.into(),
             version,
             headers: Headers::new(),
             body: Vec::new(),
@@ -319,15 +310,12 @@ impl Request {
     /// ```rust
     /// use foxpaw_habanero::*;
     ///
-    /// fn create_request() -> Result<Request, String> {
-    ///     let request = Request::new(
-    ///             Method::Get,
-    ///             "http://rust-lang.org".parse()?,
-    ///             Version::Http11
-    ///         )
-    ///         .with_body("Hello World");
-    ///     Ok(request)
-    /// }
+    /// let request = Request::new(
+    ///         Method::Get,
+    ///         "/",
+    ///         Version::Http11
+    ///     )
+    ///     .with_body("Hello World");
     /// ```
     #[must_use]
     pub fn with_body(mut self, body: impl Into<Vec<u8>>) -> Self {
@@ -344,15 +332,12 @@ impl Request {
     /// ```rust
     /// use foxpaw_habanero::*;
     ///
-    /// fn create_request() -> Result<Request, String> {
-    ///     let request = Request::new(
-    ///             Method::Get,
-    ///             "http://rust-lang.org".parse()?,
-    ///             Version::Http11
-    ///         )
-    ///         .with_header("Content-Type", "application/json");
-    ///     Ok(request)
-    /// }
+    /// let request = Request::new(
+    ///         Method::Get,
+    ///         "/",
+    ///         Version::Http11
+    ///     )
+    ///     .with_header("Content-Type", "application/json");
     /// ```
     #[must_use]
     pub fn with_header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
@@ -370,13 +355,10 @@ impl Request {
 /// ```rust
 /// use foxpaw_habanero::*;
 ///
-/// fn send_response() -> Result<(), String> {
-///     let mut response = Response::new(Version::Http11, 200);
+/// let mut response = Response::new(Version::Http11, 200);
 ///
-///     // Do things with the response...
-///     response.body = "Hello World".into();
-///     Ok(())
-/// }
+/// // Do things with the response...
+/// response.body = "Hello World".into();
 /// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Response {
@@ -403,13 +385,7 @@ impl Response {
     /// ```rust
     /// use foxpaw_habanero::*;
     ///
-    /// fn create_response() -> Result<Response, String> {
-    ///     let response = Response::new(
-    ///         Version::Http11,
-    ///         200
-    ///     );
-    ///     Ok(response)
-    /// }
+    /// let response = Response::new(Version::Http11, 200);
     /// ```
     #[must_use]
     pub fn new(version: Version, status: u16) -> Self {
@@ -434,14 +410,8 @@ impl Response {
     /// ```rust
     /// use foxpaw_habanero::*;
     ///
-    /// fn create_html() -> Result<Response, String> {
-    ///     let response = Response::new(
-    ///         Version::Http11,
-    ///         200
-    ///     )
+    /// let response = Response::new(Version::Http11, 200)
     ///     .html("<html></html>");
-    ///     Ok(response)
-    /// }
     /// ```
     #[must_use]
     pub fn html(mut self, body: impl Into<Vec<u8>>) -> Self {
@@ -467,14 +437,8 @@ impl Response {
     /// ```rust
     /// use foxpaw_habanero::*;
     ///
-    /// fn create_json() -> Result<Response, String> {
-    ///     let response = Response::new(
-    ///         Version::Http11,
-    ///         200
-    ///     )
+    /// let response = Response::new(Version::Http11, 200)
     ///     .json("{value: 42}");
-    ///     Ok(response)
-    /// }
     /// ```
     #[must_use]
     pub fn json(mut self, body: impl Into<Vec<u8>>) -> Self {
@@ -496,11 +460,8 @@ impl Response {
     /// ```rust
     /// use foxpaw_habanero::*;
     ///
-    /// fn create_response() -> Result<Response, String> {
-    ///     let response = Response::new(Version::Http11, 200)
-    ///         .with_body("Hello World");
-    ///     Ok(response)
-    /// }
+    /// let response = Response::new(Version::Http11, 200)
+    ///     .with_body("Hello World");
     /// ```
     #[must_use]
     pub fn with_body(mut self, body: impl Into<Vec<u8>>) -> Self {
@@ -517,11 +478,8 @@ impl Response {
     /// ```rust
     /// use foxpaw_habanero::*;
     ///
-    /// fn create_response() -> Result<Response, String> {
-    ///     let response = Response::new(Version::Http11, 200)
-    ///         .with_header("Content-Type", "application/json");
-    ///     Ok(response)
-    /// }
+    /// let response = Response::new(Version::Http11, 200)
+    ///     .with_header("Content-Type", "application/json");
     /// ```
     #[must_use]
     pub fn with_header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
@@ -588,6 +546,7 @@ impl FromStr for Url {
     /// # Errors
     /// Method will error with a `String` type if the supplied string does not
     /// have a scheme or an unsupported scheme is specified.
+    /// Todo: Update to `ParseError::Malformed` / `ParseError::Invalid`
     ///
     /// # Examples
     /// ```rust
@@ -616,13 +575,17 @@ impl FromStr for Url {
     /// ```
     fn from_str(from: &str) -> Result<Self, Self::Err> {
         let (scheme, rest) = match from.split_once("://") {
-            Some((s, r)) if s.eq_ignore_ascii_case("http") => Ok((Scheme::Http, r)),
+            Some((s, r)) if s.eq_ignore_ascii_case("http") => (Scheme::Http, r),
             Some((s, _)) if s.eq_ignore_ascii_case("https") => {
-                Err("Https currently not supported".to_string())
+                return Err("Https currently not supported".to_string());
             }
-            Some((s, _)) => Err(format!("Unsupported scheme: {s}")),
-            None => Err("URL must be in the format [scheme]:://[host][:port?][path]".to_string()),
-        }?;
+            Some((s, _)) => return Err(format!("Unsupported scheme: {s}")),
+            None => {
+                return Err(
+                    "URL must be in the format [scheme]:://[host][:port?][path]".to_string()
+                );
+            }
+        };
 
         let (rest, path) = match rest.find('/') {
             Some(idx) => (&rest[..idx], rest[idx..].to_string()),
@@ -814,40 +777,27 @@ mod tests {
     fn request_new_correct() {
         let expected = Request {
             method: Method::Get,
-            url: "http://rust-lang.org".parse().unwrap(),
+            uri: "/".to_string(),
             version: Version::Http11,
             headers: Headers::new(),
             body: Vec::new(),
         };
-        let actual = Request::new(
-            Method::Get,
-            "http://rust-lang.org".parse().unwrap(),
-            Version::Http11,
-        );
+        let actual = Request::new(Method::Get, "/", Version::Http11);
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn request_with_body_correct() {
         let expected = "Hello World".as_bytes();
-        let actual = Request::new(
-            Method::Get,
-            "http://rust-lang.org".parse().unwrap(),
-            Version::Http11,
-        )
-        .with_body("Hello World");
+        let actual = Request::new(Method::Get, "/", Version::Http11).with_body("Hello World");
         assert_eq!(actual.body, expected);
     }
 
     #[test]
     fn request_with_header_correct() {
         let expected = Headers::new().insert("Content-Type", "application/json");
-        let actual = Request::new(
-            Method::Get,
-            "http://rust-lang.org".parse().unwrap(),
-            Version::Http11,
-        )
-        .with_header("Content-Type", "application/json");
+        let actual = Request::new(Method::Get, "/", Version::Http11)
+            .with_header("Content-Type", "application/json");
         assert_eq!(actual.headers, expected);
     }
 
