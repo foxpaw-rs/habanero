@@ -500,6 +500,47 @@ pub enum Scheme {
     Https,
 }
 
+impl FromStr for Scheme {
+    type Err = ParseError;
+
+    /// From Str
+    ///
+    /// Try to convert from a `str` into a [`Scheme`]. Can be used explicitly
+    /// or implicitly from `str::parse`. Note that while HTTP versions are
+    /// expected to be uppercase, this method is case-insensitive.
+    ///
+    /// # Errors
+    /// Method will error with a `ParseError::Invalid` type variant if the
+    /// supplied string is not a valid or supported HTTP scheme.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::Scheme;
+    /// use std::str::FromStr;
+    ///
+    /// let expected = Ok(Scheme::Http);
+    ///
+    /// // Explicit calling from_str
+    /// assert_eq!(Scheme::from_str("http"), expected);
+    ///
+    /// // Implicitly via str::parse
+    /// assert_eq!("HTTP".parse(), expected);
+    ///
+    /// // Invalid input string
+    /// assert!(Scheme::from_str("Unknown").is_err());
+    /// assert!("Unknown".parse::<Scheme>().is_err());
+    /// ```
+    fn from_str(from: &str) -> Result<Self, Self::Err> {
+        match from.to_uppercase().as_str() {
+            "HTTP" => Ok(Scheme::Http),
+            "HTTPS" => Ok(Scheme::Https),
+            other => Err(ParseError::Invalid(format!(
+                "Unsupported HTTP scheme: {other}"
+            ))),
+        }
+    }
+}
+
 /// `Url`
 ///
 /// A URL which is used by the [`Client`] as the endpoint to target. This can
@@ -581,13 +622,12 @@ impl FromStr for Url {
     /// ```
     fn from_str(from: &str) -> Result<Self, Self::Err> {
         let (scheme, rest) = match from.split_once("://") {
-            Some((s, r)) if s.eq_ignore_ascii_case("http") => (Scheme::Http, r),
             Some((s, _)) if s.eq_ignore_ascii_case("https") => {
                 return Err(ParseError::Invalid(
                     "Https currently not supported".to_string(),
                 ));
             }
-            Some((s, _)) => return Err(ParseError::Invalid(format!("Unsupported scheme: {s}"))),
+            Some((s, r)) => (s.parse()?, r),
             None => {
                 return Err(ParseError::Malformed(
                     "URL must be in the format [scheme]:://[host][:port?][path]".to_string(),
@@ -627,6 +667,48 @@ pub enum Version {
     Http10,
     Http11,
     Http20,
+}
+
+impl FromStr for Version {
+    type Err = ParseError;
+
+    /// From Str
+    ///
+    /// Try to convert from a `str` into a [`Version`]. Can be used explicitly
+    /// or implicitly from `str::parse`. Note that while HTTP versions are
+    /// expected to be uppercase, this method is case-insensitive.
+    ///
+    /// # Errors
+    /// Method will error with a `ParseError::Invalid` type variant if the
+    /// supplied string is not a valid or supported HTTP version.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::Version;
+    /// use std::str::FromStr;
+    ///
+    /// let expected = Ok(Version::Http11);
+    ///
+    /// // Explicit calling from_str
+    /// assert_eq!(Version::from_str("http/1.1"), expected);
+    ///
+    /// // Implicitly via str::parse
+    /// assert_eq!("HTTP/1.1".parse(), expected);
+    ///
+    /// // Invalid input string
+    /// assert!(Version::from_str("Unknown").is_err());
+    /// assert!("Unknown".parse::<Version>().is_err());
+    /// ```
+    fn from_str(from: &str) -> Result<Self, Self::Err> {
+        match from.to_uppercase().as_str() {
+            "HTTP/1.0" => Ok(Version::Http10),
+            "HTTP/1.1" => Ok(Version::Http11),
+            "HTTP/2" => Ok(Version::Http20),
+            other => Err(ParseError::Invalid(format!(
+                "Unsupported HTTP version: {other}"
+            ))),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -858,6 +940,22 @@ mod tests {
     }
 
     #[test]
+    fn scheme_from_str_correct() {
+        let expected = Ok(Scheme::Http);
+        let actual = Scheme::from_str("http");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn scheme_from_str_error() {
+        let expected = Err(ParseError::Invalid(
+            "Unsupported HTTP scheme: UNKNOWN".to_string(),
+        ));
+        let actual = Scheme::from_str("unknown");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
     fn url_from_str_correct() {
         let expected = Url {
             scheme: Scheme::Http,
@@ -934,5 +1032,21 @@ mod tests {
     fn url_from_str_invalid_port() {
         let actual = "http://rust-lang.org:port".parse::<Url>();
         assert!(matches!(actual, Err(ParseError::Invalid(_))));
+    }
+
+    #[test]
+    fn version_from_str_correct() {
+        let expected = Ok(Version::Http11);
+        let actual = Version::from_str("http/1.1");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn version_from_str_error() {
+        let expected = Err(ParseError::Invalid(
+            "Unsupported HTTP version: UNKNOWN".to_string(),
+        ));
+        let actual = Version::from_str("unknown");
+        assert_eq!(actual, expected);
     }
 }

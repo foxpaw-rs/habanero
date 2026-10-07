@@ -57,17 +57,15 @@ impl Http1 {
             ));
         }
 
-        let method = Method::from_str(parts[0])?;
+        let method = parts[0].parse()?;
         let url = parts[1];
-        let version = match parts[2] {
-            s if s.eq_ignore_ascii_case("HTTP/1.0") => Version::Http10,
-            s if s.eq_ignore_ascii_case("HTTP/1.1") => Version::Http11,
-            s => {
-                return Err(ParseError::Invalid(format!(
-                    "Unsupported HTTP version: {s}"
-                )));
-            }
-        };
+        let version = parts[2].parse()?;
+        if version != Version::Http10 && version != Version::Http11 {
+            return Err(ParseError::Invalid(format!(
+                "Unsupported HTTP version: {:?}",
+                version
+            )));
+        }
         let mut request = Request::new(method, url, version);
 
         loop {
@@ -247,6 +245,13 @@ mod tests {
     #[test]
     fn http1_parse_request_invalid_version() {
         let raw = "GET / HTTP/0.1";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+        assert!(matches!(actual, Err(ParseError::Invalid(_))));
+    }
+
+    #[test]
+    fn http1_parse_request_invalid_unsupported_version() {
+        let raw = "GET / HTTP/2";
         let actual = Http1::parse_request(&mut raw.as_bytes());
         assert!(matches!(actual, Err(ParseError::Invalid(_))));
     }
