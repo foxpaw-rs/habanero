@@ -1,17 +1,16 @@
 //! Codec
 //!
 //! Todo: Module documentation
-//! Todo: Better error handling across the crate before moving on.
 
-use crate::common::*;
+use crate::common::{Method, Request, Response, Version};
+use crate::err::ParseError;
 use std::io::{self, BufRead, Write};
+use std::str::FromStr;
 
 pub struct Http1;
 
 impl Http1 {
     /// Parse Request
-    ///
-    /// Todo: Test once error handling updated
     ///
     /// Parse a [`Request`] out of a read buffer. The read buffer is expected
     /// to contain an HTTP/1.0 or HTTP/1.1 formatted request.
@@ -29,18 +28,23 @@ impl Http1 {
     /// # Examples
     /// ```rust
     /// use foxpaw_habanero::codec::Http1;
+    /// use foxpaw_habanero::err::ParseError;
     ///
-    /// fn get_request() -> Result<(), String> {
-    ///     let input = "GET http://rust-lang.org HTTP/1.1\n";
-    ///     let request = Http1::parse_request(&mut input.as_bytes());
+    /// fn get_request() -> Result<(), ParseError> {
+    ///     let input = "GET / HTTP/1.1\n";
+    ///     let request = Http1::parse_request(&mut input.as_bytes())?;
     ///     Ok(())
     /// }
     /// ```
-    pub fn parse_request(reader: &mut impl BufRead) -> Result<Request, String> {
+    pub fn parse_request(reader: &mut impl BufRead) -> Result<Request, ParseError> {
         let mut line = String::new();
-        let bytes = reader.read_line(&mut line).map_err(|e| e.to_string())?;
+        let bytes = reader
+            .read_line(&mut line)
+            .map_err(|e| ParseError::Malformed(e.to_string()))?;
         if bytes == 0 {
-            return Err("Connection closed, unable to read data".to_string());
+            return Err(ParseError::Empty(
+                "Connection closed, unable to read data".to_string(),
+            ));
         }
 
         let parts: Vec<&str> = line
@@ -48,7 +52,9 @@ impl Http1 {
             .split_whitespace()
             .collect();
         if parts.len() != 3 {
-            return Err("Invalid request line, expected: [method] [url] [version]".to_string());
+            return Err(ParseError::Malformed(
+                "Malformed request line, expected: [method] [uri] [version]".to_string(),
+            ));
         }
 
         let method = Method::from_str(parts[0])?;
@@ -56,12 +62,19 @@ impl Http1 {
         let version = match parts[2] {
             s if s.eq_ignore_ascii_case("HTTP/1.0") => Version::Http10,
             s if s.eq_ignore_ascii_case("HTTP/1.1") => Version::Http11,
-            s => return Err(format!("Unsupported HTTP version: {s}")),
+            s => {
+                return Err(ParseError::Invalid(format!(
+                    "Unsupported HTTP version: {s}"
+                )));
+            }
         };
         let mut request = Request::new(method, url, version);
 
         loop {
-            reader.read_line(&mut line).map_err(|e| e.to_string())?;
+            let mut line = String::new();
+            reader
+                .read_line(&mut line)
+                .map_err(|e| ParseError::Malformed(e.to_string()))?;
             line = line.trim_end_matches(['\r', '\n']).to_string();
             if line.is_empty() {
                 break;
@@ -69,21 +82,29 @@ impl Http1 {
 
             match line.split_once(':') {
                 Some((k, v)) => request = request.with_header(k.trim(), v.trim()),
-                None => return Err(format!("Invalid header line: {line}")),
+                None => {
+                    return Err(ParseError::Malformed(format!(
+                        "Malformed header line: {line}"
+                    )));
+                }
             }
         }
 
         let mut body = Vec::new();
         if let Some(len_str) = request.headers.find("Content-Length") {
-            let len: usize = len_str
-                .parse()
-                .map_err(|_| format!("Invalid Content-Length header: {len_str})"))?;
+            let len: usize = len_str.parse().map_err(|_| {
+                ParseError::Invalid(format!("Invalid Content-Length header: {len_str})"))
+            })?;
             if len > 0 {
                 body.resize(len, 0);
-                reader.read_exact(&mut body).map_err(|e| e.to_string())?;
+                reader
+                    .read_exact(&mut body)
+                    .map_err(|e| ParseError::Malformed(e.to_string()))?;
             }
         } else {
-            reader.read_to_end(&mut body).map_err(|e| e.to_string())?;
+            reader
+                .read_to_end(&mut body)
+                .map_err(|e| ParseError::Malformed(e.to_string()))?;
         }
         request = request.with_body(body);
 
@@ -121,5 +142,137 @@ impl Http1 {
         response: &Response,
     ) -> Result<(), io::Error> {
         unimplemented!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn http1_parse_request_correct() {
+        let expected = Request::new(Method::Get, "/", Version::Http11);
+        let raw = "GET / HTTP/1.1";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+
+        assert_eq!(actual, Ok(expected));
+    }
+
+    #[test]
+    fn http1_parse_request_correct_headers() {
+        let expected = Request::new(Method::Get, "/", Version::Http11)
+            .with_header("Content-Type", "application/json");
+        let raw = "GET / HTTP/1.1\n\
+            Content-Type: application/json";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+
+        assert_eq!(actual, Ok(expected));
+    }
+
+    #[test]
+    fn http1_parse_request_correct_body() {
+        let expected = Request::new(Method::Get, "/", Version::Http11).with_body("Body Text");
+        let raw = "GET / HTTP/1.1\n\n\
+            Body Text";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+
+        assert_eq!(actual, Ok(expected));
+    }
+
+    #[test]
+    fn http1_parse_request_correct_headers_body() {
+        let expected = Request::new(Method::Get, "/", Version::Http11)
+            .with_header("Content-Type", "text/plain")
+            .with_body("Body Text");
+        let raw = "GET / HTTP/1.1\n\
+            Content-Type: text/plain\n\n\
+            Body Text";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+
+        assert_eq!(actual, Ok(expected));
+    }
+
+    #[test]
+    fn http1_parse_request_correct_header_content_length() {
+        let expected = Request::new(Method::Get, "/", Version::Http11)
+            .with_header("Content-Length", "9")
+            .with_body("Body Text");
+        let raw = "GET / HTTP/1.1\n\
+            Content-Length: 9 \n\n\
+            Body Text with some extra";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+
+        assert_eq!(actual, Ok(expected));
+    }
+
+    #[test]
+    fn http1_parse_request_correct_header_empty_value() {
+        let expected =
+            Request::new(Method::Get, "/", Version::Http11).with_header("Content-Type", "");
+        let raw = "GET / HTTP/1.1\n\
+            Content-Type:";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+
+        assert_eq!(actual, Ok(expected));
+    }
+
+    #[test]
+    fn http1_parse_request_missing_method() {
+        let raw = "/ HTTP/1.1";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+        assert!(matches!(actual, Err(ParseError::Malformed(_))));
+    }
+
+    #[test]
+    fn http1_parse_request_invalid_method() {
+        let raw = "UNKNOWN / HTTP/1.1";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+        assert!(matches!(actual, Err(ParseError::Invalid(_))));
+    }
+
+    #[test]
+    fn http1_parse_request_missing_uri() {
+        let raw = "GET HTTP/1.1";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+        assert!(matches!(actual, Err(ParseError::Malformed(_))));
+    }
+
+    #[test]
+    fn http1_parse_request_missing_version() {
+        let raw = "GET /";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+        assert!(matches!(actual, Err(ParseError::Malformed(_))));
+    }
+
+    #[test]
+    fn http1_parse_request_invalid_version() {
+        let raw = "GET / HTTP/0.1";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+        assert!(matches!(actual, Err(ParseError::Invalid(_))));
+    }
+
+    #[test]
+    fn http1_parse_request_malformed_header() {
+        let raw = "GET / HTTP/1.1\n\
+            Content-Type";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+        assert!(matches!(actual, Err(ParseError::Malformed(_))));
+    }
+
+    #[test]
+    fn http1_parse_request_invalid_header_content_length() {
+        let raw = "GET / HTTP/1.1\n\
+            Content-Length: text/plain";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+        assert!(matches!(actual, Err(ParseError::Invalid(_))));
+    }
+
+    #[test]
+    fn http1_parse_request_invalid_body_length_content_length() {
+        let raw = "GET / HTTP/1.1\n\
+            Content-Length: 80\n\n\
+            Too short";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
+        assert!(matches!(actual, Err(ParseError::Malformed(_))));
     }
 }

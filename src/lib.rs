@@ -7,10 +7,10 @@
     //clippy::cargo, Todo: Cargo.toml
     clippy::pedantic,
 )]
-#![allow(clippy::wildcard_imports)]
 
 pub mod codec;
 mod common;
+pub mod err;
 pub mod transport;
 
-pub use common::*;
+pub use common::{Headers, Method, Request, Response, Scheme, Url, Version};

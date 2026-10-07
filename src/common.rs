@@ -36,6 +36,7 @@
 //!     .with_body("Hello World");
 //! ```
 
+use crate::err::ParseError;
 pub use std::str::FromStr;
 
 /// `Headers`
@@ -195,7 +196,7 @@ pub enum Method {
 }
 
 impl FromStr for Method {
-    type Err = String;
+    type Err = ParseError;
 
     /// From Str
     ///
@@ -204,9 +205,8 @@ impl FromStr for Method {
     /// to be uppercase, this method is case-insensitive.
     ///
     /// # Errors
-    /// Method will error with a `String` type if the supplied string is not a
-    /// valid HTTP method.
-    /// Todo: Update to `ParseError::Invalid`
+    /// Method will error with a `ParseError::Invalid` type variant if the
+    /// supplied string is not a valid HTTP method.
     ///
     /// # Examples
     /// ```rust
@@ -233,7 +233,9 @@ impl FromStr for Method {
             "DELETE" => Ok(Method::Delete),
             "HEAD" => Ok(Method::Head),
             "OPTIONS" => Ok(Method::Options),
-            other => Err(format!("Unsupported HTTP method: {other}")),
+            other => Err(ParseError::Invalid(format!(
+                "Unsupported HTTP method: {other}"
+            ))),
         }
     }
 }
@@ -536,7 +538,7 @@ pub struct Url {
 }
 
 impl FromStr for Url {
-    type Err = String;
+    type Err = ParseError;
 
     /// From Str
     ///
@@ -544,9 +546,13 @@ impl FromStr for Url {
     /// implicitly from `str::parse`.
     ///
     /// # Errors
-    /// Method will error with a `String` type if the supplied string does not
-    /// have a scheme or an unsupported scheme is specified.
-    /// Todo: Update to `ParseError::Malformed` / `ParseError::Invalid`
+    /// Method will error with a `ParseError::Invalid` type variant if the
+    /// supplied string does not have a scheme or an unsupported scheme is
+    /// specified. A `ParseError::Invalid` will also be returned if an invalid
+    /// port (e.g. a value that cannot be parsed into a u16) is returned.
+    ///
+    /// If the URL is not in the correct format, a `ParseError::Malformed` type
+    /// variant will be returned.
     ///
     /// # Examples
     /// ```rust
@@ -577,13 +583,15 @@ impl FromStr for Url {
         let (scheme, rest) = match from.split_once("://") {
             Some((s, r)) if s.eq_ignore_ascii_case("http") => (Scheme::Http, r),
             Some((s, _)) if s.eq_ignore_ascii_case("https") => {
-                return Err("Https currently not supported".to_string());
+                return Err(ParseError::Invalid(
+                    "Https currently not supported".to_string(),
+                ));
             }
-            Some((s, _)) => return Err(format!("Unsupported scheme: {s}")),
+            Some((s, _)) => return Err(ParseError::Invalid(format!("Unsupported scheme: {s}"))),
             None => {
-                return Err(
-                    "URL must be in the format [scheme]:://[host][:port?][path]".to_string()
-                );
+                return Err(ParseError::Malformed(
+                    "URL must be in the format [scheme]:://[host][:port?][path]".to_string(),
+                ));
             }
         };
 
@@ -596,7 +604,7 @@ impl FromStr for Url {
             Some((h, p)) => (
                 h.to_string(),
                 p.parse::<u16>()
-                    .map_err(|p| format!("Invalid port number: {p}"))?,
+                    .map_err(|p| ParseError::Invalid(format!("Invalid port number: {p}")))?,
             ),
             None => (rest.to_string(), 80),
         };
@@ -768,7 +776,9 @@ mod tests {
 
     #[test]
     fn method_from_str_error() {
-        let expected = Err("Unsupported HTTP method: UNKNOWN".to_string());
+        let expected = Err(ParseError::Invalid(
+            "Unsupported HTTP method: UNKNOWN".to_string(),
+        ));
         let actual = Method::from_str("unknown");
         assert_eq!(actual, expected);
     }
@@ -869,21 +879,7 @@ mod tests {
         // };
         // let actual = "http://rust-lang.org".parse();
         let actual = "https://rust-lang.org".parse::<Url>();
-        assert!(actual.is_err());
-    }
-
-    #[test]
-    fn url_from_str_unsupported_scheme() {
-        let expected = "Unsupported scheme: ftp".to_string();
-        let actual = "ftp://rust-lang.org".parse::<Url>();
-        assert_eq!(actual, Err(expected));
-    }
-
-    #[test]
-    fn url_from_str_missing_scheme() {
-        let expected = "URL must be in the format [scheme]:://[host][:port?][path]".to_string();
-        let actual = "rust-lang.org".parse::<Url>();
-        assert_eq!(actual, Err(expected));
+        assert!(matches!(actual, Err(ParseError::Invalid(_))));
     }
 
     #[test]
@@ -920,5 +916,23 @@ mod tests {
         };
         let actual = "http://rust-lang.org:8080/documentation".parse();
         assert_eq!(actual, Ok(expected));
+    }
+
+    #[test]
+    fn url_from_str_invalid_scheme() {
+        let actual = "ftp://rust-lang.org".parse::<Url>();
+        assert!(matches!(actual, Err(ParseError::Invalid(_))));
+    }
+
+    #[test]
+    fn url_from_str_malformed_scheme() {
+        let actual = "rust-lang.org".parse::<Url>();
+        assert!(matches!(actual, Err(ParseError::Malformed(_))));
+    }
+
+    #[test]
+    fn url_from_str_invalid_port() {
+        let actual = "http://rust-lang.org:port".parse::<Url>();
+        assert!(matches!(actual, Err(ParseError::Invalid(_))));
     }
 }
