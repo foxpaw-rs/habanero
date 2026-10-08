@@ -703,7 +703,7 @@ impl FromStr for Version {
         match from.to_uppercase().as_str() {
             "HTTP/1.0" => Ok(Version::Http10),
             "HTTP/1.1" => Ok(Version::Http11),
-            "HTTP/2" => Ok(Version::Http20),
+            "HTTP/2.0" => Ok(Version::Http20),
             other => Err(ParseError::Invalid(format!(
                 "Unsupported HTTP version: {other}"
             ))),
