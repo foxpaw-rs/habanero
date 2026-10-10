@@ -11,7 +11,7 @@ pub struct Http1;
 impl Http1 {
     /// Parse Body
     ///
-    /// Parse the body section of the reader. This method will use relevant 
+    /// Parse the body section of the reader. This method will use relevant
     /// header values in assisting in parsing the HTTP body.
     fn parse_body(reader: &mut impl BufRead, headers: &Headers) -> Result<Vec<u8>, ParseError> {
         let mut body = Vec::new();
@@ -181,9 +181,44 @@ impl Http1 {
         Ok(response)
     }
 
+    /// Serialise Body
+    ///
+    /// Serialise the body of either a [`Request`] or [`Response`].
+    fn serialise_body(writer: &mut impl Write, body: &[u8]) -> Result<(), io::Error> {
+        if !body.is_empty() {
+            writer.write_all(body)?;
+        }
+        writer.flush()?;
+        Ok(())
+    }
+
+    /// Serialise Headers
+    ///
+    /// Serialise the [`Headers`] of either a [`Request`] or [`Response`]. Note
+    /// that the body is requried to specify the Content-Length header if it
+    /// was not set in the initial [`Headers`].
+    fn serialise_headers(
+        writer: &mut impl Write,
+        headers: &Headers,
+        body: &[u8],
+    ) -> Result<(), io::Error> {
+        let mut has_content_length = false;
+        for (k, v) in headers.iter() {
+            if k.eq_ignore_ascii_case("Content-Length") {
+                has_content_length = true;
+            }
+            write!(writer, "{k}: {v}\r\n")?;
+        }
+
+        if !has_content_length && !body.is_empty() {
+            write!(writer, "Content-Length: {}\r\n", body.len())?;
+        }
+        write!(writer, "\r\n")
+    }
+
     /// Serialise Request
     ///
-    /// Serialise a [`Request`] into the provided writer, ready for 
+    /// Serialise a [`Request`] into the provided writer, ready for
     /// transmission.
     ///
     /// # Errors
@@ -201,15 +236,12 @@ impl Http1 {
     ///         .with_header("Content-Length", "11")
     ///         .with_body("Hello World");
     ///
-    ///     let mut buffer: Vec<u8> = Vec::new(); 
+    ///     let mut buffer: Vec<u8> = Vec::new();
     ///     Http1::serialise_request(&mut buffer, &request)?;
     ///     Ok(())
     /// }
     /// ```
-    pub fn serialise_request(
-        writer: &mut impl Write,
-        request: &Request,
-    ) -> Result<(), io::Error> {
+    pub fn serialise_request(writer: &mut impl Write, request: &Request) -> Result<(), io::Error> {
         let method = match request.method {
             Method::Get => "GET",
             Method::Post => "POST",
@@ -218,43 +250,115 @@ impl Http1 {
             Method::Head => "HEAD",
             Method::Options => "OPTIONS",
         };
-        let version = match request.version {
-            Version::Http10 => "HTTP/1.0",
-            Version::Http11 => "HTTP/1.1",
-            Version::Http20 => "HTTP/2.0"
-        };
-        write!(writer, "{method} {} {version}\r\n", request.uri)?;
-
-        let mut has_content_length = false;
-        for (k, v) in request.headers.iter() {
-            if k.eq_ignore_ascii_case("Content-Length") {
-                has_content_length = true;
-            }
-            write!(writer, "{k}: {v}\r\n")?;
-        }
-
-        if !has_content_length && !request.body.is_empty() {
-            write!(writer, "Content-Length: {}\r\n", request.body.len())?;
-        }
+        write!(writer, "{method} {} ", request.uri)?;
+        Self::serialise_version(writer, request.version)?;
         write!(writer, "\r\n")?;
 
-        if !request.body.is_empty() {
-            writer.write_all(&request.body)?;
-        }
-        writer.flush()?;
+        Self::serialise_headers(writer, &request.headers, &request.body)?;
+        Self::serialise_body(writer, &request.body)?;
         Ok(())
     }
 
     /// Serialise Response
     ///
-    /// Todo: Document / Test
+    /// Serialise a [`Response`] into the provided writer, ready for
+    /// transmission.
     ///
     /// # Errors
+    /// This method will error if the underlying calls to write into the writer
+    /// fail, returning an `std::io::Error`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::codec::Http1;
+    ///
+    /// fn do_serialise_response() -> Result<(), std::io::Error> {
+    ///     let response = Response::new(Version::Http11, 200)
+    ///         .with_header("Content-Type", "text/plain")
+    ///         .with_header("Content-Length", "11")
+    ///         .with_body("Hello World");
+    ///
+    ///     let mut buffer: Vec<u8> = Vec::new();
+    ///     Http1::serialise_response(&mut buffer, &response)?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn serialise_response(
         writer: &mut impl Write,
         response: &Response,
     ) -> Result<(), io::Error> {
-        unimplemented!()
+        Self::serialise_version(writer, response.version)?;
+        let reason_phrase = match response.status {
+            100 => "Contine",
+            101 => "Switching Protocols",
+            200 => "OK",
+            201 => "Created",
+            202 => "Accepted",
+            203 => "Non-Authoritative Information",
+            204 => "No Content",
+            205 => "Reset Content",
+            206 => "Partial Content",
+            300 => "Multiple Choices",
+            301 => "Moved Permanently",
+            302 => "Found",
+            303 => "See Other",
+            304 => "Not Modified",
+            307 => "Temporary Redirect",
+            308 => "Permanent Redirect",
+            400 => "Bad Request",
+            401 => "Unauthorized",
+            402 => "Payment Required",
+            403 => "Forbidden",
+            404 => "Not Found",
+            405 => "Method Not Allowed",
+            406 => "Not Acceptable",
+            407 => "Proxy Authentication Required",
+            408 => "Request Timeout",
+            409 => "Conflict",
+            410 => "Gone",
+            411 => "Length Required",
+            412 => "Precondition Failed",
+            413 => "Content Too Large",
+            414 => "URI Too Long",
+            415 => "Unsupported Media Type",
+            416 => "Range Not Satisfiable",
+            417 => "Expectation Failed",
+            418 => "I'm a Teapot",
+            421 => "Misdirected Request",
+            425 => "Too Early",
+            426 => "Upgrade Required",
+            428 => "Precondition Required",
+            429 => "Too Many Requests",
+            431 => "Request Header Fields Too Large",
+            451 => "Unavailable for Legal Reasons",
+            500 => "Internal Server Error",
+            501 => "Not Implemented",
+            502 => "Bad Gateway",
+            503 => "Service Unavailable",
+            504 => "Gateway Timeout",
+            505 => "HTTP Version Not Supported",
+            506 => "Variant Also Negotiates",
+            510 => "Not Extended",
+            511 => "Network Authentication Required",
+            _ => "Status",
+        };
+        write!(writer, " {} {reason_phrase}\r\n", response.status)?;
+        Self::serialise_headers(writer, &response.headers, &response.body)?;
+        Self::serialise_body(writer, &response.body)?;
+        Ok(())
+    }
+
+    /// Serialise Version
+    ///
+    /// Serialise the [`Version`] of either a [`Request`] or [`Response`].
+    fn serialise_version(writer: &mut impl Write, version: Version) -> Result<(), io::Error> {
+        let version = match version {
+            Version::Http10 => "HTTP/1.0",
+            Version::Http11 => "HTTP/1.1",
+            Version::Http20 => "HTTP/2.0",
+        };
+        write!(writer, "{version}")
     }
 }
 
@@ -537,7 +641,8 @@ mod tests {
     #[test]
     fn serialise_request_correct_headers() {
         let expected = "GET / HTTP/1.1\r\n\
-            Content-Type: text/plain\r\n\r\n".as_bytes();
+            Content-Type: text/plain\r\n\r\n"
+            .as_bytes();
         let request = Request::new(Method::Get, "/", Version::Http11)
             .with_header("Content-Type", "text/plain");
         let mut actual: Vec<u8> = Vec::new();
@@ -549,9 +654,9 @@ mod tests {
     fn serialise_request_correct_body() {
         let expected = "GET / HTTP/1.1\r\n\
             Content-Length: 11\r\n\r\n\
-            Hello World".as_bytes();
-        let request = Request::new(Method::Get, "/", Version::Http11)
-            .with_body("Hello World");
+            Hello World"
+            .as_bytes();
+        let request = Request::new(Method::Get, "/", Version::Http11).with_body("Hello World");
         let mut actual: Vec<u8> = Vec::new();
         Http1::serialise_request(&mut actual, &request).unwrap();
         assert_eq!(actual, expected);
@@ -562,7 +667,8 @@ mod tests {
         let expected = "GET / HTTP/1.1\r\n\
             Content-Type: text/plain\r\n\
             Content-Length: 11\r\n\r\n\
-            Hello World".as_bytes();
+            Hello World"
+            .as_bytes();
         let request = Request::new(Method::Get, "/", Version::Http11)
             .with_header("Content-Type", "text/plain")
             .with_body("Hello World");
@@ -576,7 +682,8 @@ mod tests {
         let expected = "GET / HTTP/1.1\r\n\
             Content-Type: text/plain\r\n\
             Content-Length: 15\r\n\r\n\
-            Hello World".as_bytes();
+            Hello World"
+            .as_bytes();
         let request = Request::new(Method::Get, "/", Version::Http11)
             .with_header("Content-Type", "text/plain")
             .with_header("Content-Length", "15")
@@ -586,4 +693,67 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
+    #[test]
+    fn serialise_response_correct() {
+        let expected = "HTTP/1.1 200 OK\r\n\r\n".as_bytes();
+        let response = Response::new(Version::Http11, 200);
+        let mut actual: Vec<u8> = Vec::new();
+        Http1::serialise_response(&mut actual, &response).unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn serialise_response_correct_headers() {
+        let expected = "HTTP/1.1 200 OK\r\n\
+            Content-Type: text/plain\r\n\r\n"
+            .as_bytes();
+        let response =
+            Response::new(Version::Http11, 200).with_header("Content-Type", "text/plain");
+        let mut actual: Vec<u8> = Vec::new();
+        Http1::serialise_response(&mut actual, &response).unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn serialise_response_correct_body() {
+        let expected = "HTTP/1.1 200 OK\r\n\
+            Content-Length: 11\r\n\r\n\
+            Hello World"
+            .as_bytes();
+        let response = Response::new(Version::Http11, 200).with_body("Hello World");
+        let mut actual: Vec<u8> = Vec::new();
+        Http1::serialise_response(&mut actual, &response).unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn serialise_response_correct_headers_body() {
+        let expected = "HTTP/1.1 200 OK\r\n\
+            Content-Type: text/plain\r\n\
+            Content-Length: 11\r\n\r\n\
+            Hello World"
+            .as_bytes();
+        let response = Response::new(Version::Http11, 200)
+            .with_header("Content-Type", "text/plain")
+            .with_body("Hello World");
+        let mut actual: Vec<u8> = Vec::new();
+        Http1::serialise_response(&mut actual, &response).unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn serialise_response_correct_headers_content_length() {
+        let expected = "HTTP/1.1 200 OK\r\n\
+            Content-Type: text/plain\r\n\
+            Content-Length: 15\r\n\r\n\
+            Hello World"
+            .as_bytes();
+        let response = Response::new(Version::Http11, 200)
+            .with_header("Content-Type", "text/plain")
+            .with_header("Content-Length", "15")
+            .with_body("Hello World");
+        let mut actual: Vec<u8> = Vec::new();
+        Http1::serialise_response(&mut actual, &response).unwrap();
+        assert_eq!(actual, expected);
+    }
 }
