@@ -5,7 +5,8 @@
 //!
 //! # Architecture
 //! The error types defined for this crate are:
-//! * [`ParseError`]
+//! * [`ParseError`]; and
+//! * [`SerializeError`].
 //!
 //! # Examples
 //! ```rust
@@ -80,6 +81,53 @@ impl fmt::Display for ParseError {
 
 impl Error for ParseError {}
 
+/// `SerializeError`
+///
+/// The enumeration of available serialisation error types. Each variant houses
+/// an inner `String` context to be provided by the user of the error.
+///
+/// # Examples
+/// ```rust
+/// use foxpaw_habanero::err::SerializeError;
+///
+/// fn my_parsing_method(input: &str) -> Result<(), SerializeError> {
+///     if input.is_empty() {
+///         return Err(SerializeError::Io("Writing Error.".to_string()));
+///     }
+///     Ok(())
+///}
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum SerializeError {
+    Io(String),
+}
+
+impl fmt::Display for SerializeError {
+    /// Fmt
+    ///
+    /// Format the `SerializeError` for Display.
+    ///
+    /// # Error
+    /// This method will error if the underlying call to write errors.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::err::SerializeError;
+    ///
+    /// let error = SerializeError::Io("Unable to write".to_string());
+    /// println!("{error}");
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Io(inner) if !inner.is_empty() => write!(f, "SerializeError::Io => {inner}"),
+            Self::Io(_) => write!(f, "SerializeError::Io"),
+        }
+    }
+}
+
+impl Error for SerializeError {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,6 +143,20 @@ mod tests {
     fn parse_error_fmt_empty() {
         let expected = "ParseError::Invalid".to_string();
         let actual = ParseError::Invalid(String::new()).to_string();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn serialize_error_fmt_correct() {
+        let expected = "SerializeError::Io => Custom context".to_string();
+        let actual = SerializeError::Io("Custom context".to_string()).to_string();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn serialize_error_fmt_empty() {
+        let expected = "SerializeError::Io".to_string();
+        let actual = SerializeError::Io(String::new()).to_string();
         assert_eq!(actual, expected);
     }
 }

@@ -13,10 +13,10 @@
 : Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Doing
-- [/] Codec
-: Create a `Http1` codec under the `codec` module. This is in charge of serialising and parsing both `common/Request` and `common/Response` from and into byte slices.
 
 ### Done
+- [x] Codec
+: Create a `Http1` codec under the `codec` module. This is in charge of serialising and parsing both `common/Request` and `common/Response` from and into byte slices.
 - [x] Transport
 : Create the transport layer, including a `Transport` trait and `Tcp` struct implementation under the `transport` module.
 - [x] Common

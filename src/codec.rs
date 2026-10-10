@@ -1,10 +1,50 @@
 //! Codec
 //!
-//! Todo: Module documentation
-
+//! This module houses the codec types that parse into, and serialize from the
+//! [`Request`] and [`Response`] types.
+//!
+//! # Architecture
+//! This module exposes a single [`Http1`] codec responsible for converting
+//! from and into an HTTP/1.x style.
+//!
+//! All codes utilise `parse_x` and `serialize_x` methods for converting types.
+//!
+//! # Examples
+//! ## Parse HTTP1.x
+//! ```rust
+//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::codec::Http1;
+//! use foxpaw_habanero::err::ParseError;
+//!
+//! fn parse_http1() -> Result<(), ParseError> {
+//!     let raw = "HTTP/1.1 200 OK\r\n\
+//!         Content-Type: text-plain\r\n\
+//!         Content-Length: 11\r\n\r\n\
+//!         Hello World";
+//!     let response = Http1::parse_response(&mut raw.as_bytes())?;
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Serialize HTTP1.x
+//! ```rust
+//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::codec::Http1;
+//!
+//! fn serialize_http1() -> Result<(), String> {
+//!     let request = Request::new(Method::Get, "/", Version::Http11)
+//!         .with_header("Content-Type", "text/plain")
+//!         .with_header("Content-Length", "11")
+//!         .with_body("Hello World");
+//!     let mut buffer: Vec<u8> = Vec::new();
+//!     Http1::serialize_request(&mut buffer, &request).map_err(|e| e.to_string())?;
+//!     let raw = String::from_utf8(buffer).map_err(|e| e.to_string())?;
+//!     Ok(())
+//! }
+//! ```
 use crate::common::{Headers, Method, Request, Response, Version};
-use crate::err::ParseError;
-use std::io::{self, BufRead, Write};
+use crate::err::{ParseError, SerializeError};
+use std::io::{BufRead, Write};
 
 pub struct Http1;
 
@@ -181,44 +221,49 @@ impl Http1 {
         Ok(response)
     }
 
-    /// Serialise Body
+    /// Serialize Body
     ///
-    /// Serialise the body of either a [`Request`] or [`Response`].
-    fn serialise_body(writer: &mut impl Write, body: &[u8]) -> Result<(), io::Error> {
+    /// Serialize the body of either a [`Request`] or [`Response`].
+    fn serialize_body(writer: &mut impl Write, body: &[u8]) -> Result<(), SerializeError> {
         if !body.is_empty() {
-            writer.write_all(body)?;
+            writer
+                .write_all(body)
+                .map_err(|e| SerializeError::Io(e.to_string()))?;
         }
-        writer.flush()?;
+        writer
+            .flush()
+            .map_err(|e| SerializeError::Io(e.to_string()))?;
         Ok(())
     }
 
-    /// Serialise Headers
+    /// Serialize Headers
     ///
-    /// Serialise the [`Headers`] of either a [`Request`] or [`Response`]. Note
+    /// Serialize the [`Headers`] of either a [`Request`] or [`Response`]. Note
     /// that the body is requried to specify the Content-Length header if it
     /// was not set in the initial [`Headers`].
-    fn serialise_headers(
+    fn serialize_headers(
         writer: &mut impl Write,
         headers: &Headers,
         body: &[u8],
-    ) -> Result<(), io::Error> {
+    ) -> Result<(), SerializeError> {
         let mut has_content_length = false;
         for (k, v) in headers.iter() {
             if k.eq_ignore_ascii_case("Content-Length") {
                 has_content_length = true;
             }
-            write!(writer, "{k}: {v}\r\n")?;
+            write!(writer, "{k}: {v}\r\n").map_err(|e| SerializeError::Io(e.to_string()))?;
         }
 
         if !has_content_length && !body.is_empty() {
-            write!(writer, "Content-Length: {}\r\n", body.len())?;
+            write!(writer, "Content-Length: {}\r\n", body.len())
+                .map_err(|e| SerializeError::Io(e.to_string()))?;
         }
-        write!(writer, "\r\n")
+        write!(writer, "\r\n").map_err(|e| SerializeError::Io(e.to_string()))
     }
 
-    /// Serialise Request
+    /// Serialize Request
     ///
-    /// Serialise a [`Request`] into the provided writer, ready for
+    /// Serialize a [`Request`] into the provided writer, ready for
     /// transmission.
     ///
     /// # Errors
@@ -229,19 +274,23 @@ impl Http1 {
     /// ```rust
     /// use foxpaw_habanero::*;
     /// use foxpaw_habanero::codec::Http1;
+    /// use foxpaw_habanero::err::SerializeError;
     ///
-    /// fn do_serialise_request() -> Result<(), std::io::Error> {
+    /// fn do_serialize_request() -> Result<(), SerializeError> {
     ///     let request = Request::new(Method::Get, "/", Version::Http11)
     ///         .with_header("Content-Type", "text/plain")
     ///         .with_header("Content-Length", "11")
     ///         .with_body("Hello World");
     ///
     ///     let mut buffer: Vec<u8> = Vec::new();
-    ///     Http1::serialise_request(&mut buffer, &request)?;
+    ///     Http1::serialize_request(&mut buffer, &request)?;
     ///     Ok(())
     /// }
     /// ```
-    pub fn serialise_request(writer: &mut impl Write, request: &Request) -> Result<(), io::Error> {
+    pub fn serialize_request(
+        writer: &mut impl Write,
+        request: &Request,
+    ) -> Result<(), SerializeError> {
         let method = match request.method {
             Method::Get => "GET",
             Method::Post => "POST",
@@ -250,18 +299,19 @@ impl Http1 {
             Method::Head => "HEAD",
             Method::Options => "OPTIONS",
         };
-        write!(writer, "{method} {} ", request.uri)?;
-        Self::serialise_version(writer, request.version)?;
-        write!(writer, "\r\n")?;
+        write!(writer, "{method} {} ", request.uri)
+            .map_err(|e| SerializeError::Io(e.to_string()))?;
+        Self::serialize_version(writer, request.version)?;
+        write!(writer, "\r\n").map_err(|e| SerializeError::Io(e.to_string()))?;
 
-        Self::serialise_headers(writer, &request.headers, &request.body)?;
-        Self::serialise_body(writer, &request.body)?;
+        Self::serialize_headers(writer, &request.headers, &request.body)?;
+        Self::serialize_body(writer, &request.body)?;
         Ok(())
     }
 
-    /// Serialise Response
+    /// Serialize Response
     ///
-    /// Serialise a [`Response`] into the provided writer, ready for
+    /// Serialize a [`Response`] into the provided writer, ready for
     /// transmission.
     ///
     /// # Errors
@@ -272,23 +322,24 @@ impl Http1 {
     /// ```rust
     /// use foxpaw_habanero::*;
     /// use foxpaw_habanero::codec::Http1;
+    /// use foxpaw_habanero::err::SerializeError;
     ///
-    /// fn do_serialise_response() -> Result<(), std::io::Error> {
+    /// fn do_serialize_response() -> Result<(), SerializeError> {
     ///     let response = Response::new(Version::Http11, 200)
     ///         .with_header("Content-Type", "text/plain")
     ///         .with_header("Content-Length", "11")
     ///         .with_body("Hello World");
     ///
     ///     let mut buffer: Vec<u8> = Vec::new();
-    ///     Http1::serialise_response(&mut buffer, &response)?;
+    ///     Http1::serialize_response(&mut buffer, &response)?;
     ///     Ok(())
     /// }
     /// ```
-    pub fn serialise_response(
+    pub fn serialize_response(
         writer: &mut impl Write,
         response: &Response,
-    ) -> Result<(), io::Error> {
-        Self::serialise_version(writer, response.version)?;
+    ) -> Result<(), SerializeError> {
+        Self::serialize_version(writer, response.version)?;
         let reason_phrase = match response.status {
             100 => "Contine",
             101 => "Switching Protocols",
@@ -343,22 +394,23 @@ impl Http1 {
             511 => "Network Authentication Required",
             _ => "Status",
         };
-        write!(writer, " {} {reason_phrase}\r\n", response.status)?;
-        Self::serialise_headers(writer, &response.headers, &response.body)?;
-        Self::serialise_body(writer, &response.body)?;
+        write!(writer, " {} {reason_phrase}\r\n", response.status)
+            .map_err(|e| SerializeError::Io(e.to_string()))?;
+        Self::serialize_headers(writer, &response.headers, &response.body)?;
+        Self::serialize_body(writer, &response.body)?;
         Ok(())
     }
 
-    /// Serialise Version
+    /// Serialize Version
     ///
-    /// Serialise the [`Version`] of either a [`Request`] or [`Response`].
-    fn serialise_version(writer: &mut impl Write, version: Version) -> Result<(), io::Error> {
+    /// Serialize the [`Version`] of either a [`Request`] or [`Response`].
+    fn serialize_version(writer: &mut impl Write, version: Version) -> Result<(), SerializeError> {
         let version = match version {
             Version::Http10 => "HTTP/1.0",
             Version::Http11 => "HTTP/1.1",
             Version::Http20 => "HTTP/2.0",
         };
-        write!(writer, "{version}")
+        write!(writer, "{version}").map_err(|e| SerializeError::Io(e.to_string()))
     }
 }
 
@@ -630,40 +682,40 @@ mod tests {
     }
 
     #[test]
-    fn serialise_request_correct() {
+    fn serialize_request_correct() {
         let expected = "GET / HTTP/1.1\r\n\r\n".as_bytes();
         let request = Request::new(Method::Get, "/", Version::Http11);
         let mut actual: Vec<u8> = Vec::new();
-        Http1::serialise_request(&mut actual, &request).unwrap();
+        Http1::serialize_request(&mut actual, &request).unwrap();
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn serialise_request_correct_headers() {
+    fn serialize_request_correct_headers() {
         let expected = "GET / HTTP/1.1\r\n\
             Content-Type: text/plain\r\n\r\n"
             .as_bytes();
         let request = Request::new(Method::Get, "/", Version::Http11)
             .with_header("Content-Type", "text/plain");
         let mut actual: Vec<u8> = Vec::new();
-        Http1::serialise_request(&mut actual, &request).unwrap();
+        Http1::serialize_request(&mut actual, &request).unwrap();
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn serialise_request_correct_body() {
+    fn serialize_request_correct_body() {
         let expected = "GET / HTTP/1.1\r\n\
             Content-Length: 11\r\n\r\n\
             Hello World"
             .as_bytes();
         let request = Request::new(Method::Get, "/", Version::Http11).with_body("Hello World");
         let mut actual: Vec<u8> = Vec::new();
-        Http1::serialise_request(&mut actual, &request).unwrap();
+        Http1::serialize_request(&mut actual, &request).unwrap();
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn serialise_request_correct_headers_body() {
+    fn serialize_request_correct_headers_body() {
         let expected = "GET / HTTP/1.1\r\n\
             Content-Type: text/plain\r\n\
             Content-Length: 11\r\n\r\n\
@@ -673,12 +725,12 @@ mod tests {
             .with_header("Content-Type", "text/plain")
             .with_body("Hello World");
         let mut actual: Vec<u8> = Vec::new();
-        Http1::serialise_request(&mut actual, &request).unwrap();
+        Http1::serialize_request(&mut actual, &request).unwrap();
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn serialise_request_correct_headers_content_length() {
+    fn serialize_request_correct_headers_content_length() {
         let expected = "GET / HTTP/1.1\r\n\
             Content-Type: text/plain\r\n\
             Content-Length: 15\r\n\r\n\
@@ -689,45 +741,45 @@ mod tests {
             .with_header("Content-Length", "15")
             .with_body("Hello World");
         let mut actual: Vec<u8> = Vec::new();
-        Http1::serialise_request(&mut actual, &request).unwrap();
+        Http1::serialize_request(&mut actual, &request).unwrap();
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn serialise_response_correct() {
+    fn serialize_response_correct() {
         let expected = "HTTP/1.1 200 OK\r\n\r\n".as_bytes();
         let response = Response::new(Version::Http11, 200);
         let mut actual: Vec<u8> = Vec::new();
-        Http1::serialise_response(&mut actual, &response).unwrap();
+        Http1::serialize_response(&mut actual, &response).unwrap();
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn serialise_response_correct_headers() {
+    fn serialize_response_correct_headers() {
         let expected = "HTTP/1.1 200 OK\r\n\
             Content-Type: text/plain\r\n\r\n"
             .as_bytes();
         let response =
             Response::new(Version::Http11, 200).with_header("Content-Type", "text/plain");
         let mut actual: Vec<u8> = Vec::new();
-        Http1::serialise_response(&mut actual, &response).unwrap();
+        Http1::serialize_response(&mut actual, &response).unwrap();
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn serialise_response_correct_body() {
+    fn serialize_response_correct_body() {
         let expected = "HTTP/1.1 200 OK\r\n\
             Content-Length: 11\r\n\r\n\
             Hello World"
             .as_bytes();
         let response = Response::new(Version::Http11, 200).with_body("Hello World");
         let mut actual: Vec<u8> = Vec::new();
-        Http1::serialise_response(&mut actual, &response).unwrap();
+        Http1::serialize_response(&mut actual, &response).unwrap();
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn serialise_response_correct_headers_body() {
+    fn serialize_response_correct_headers_body() {
         let expected = "HTTP/1.1 200 OK\r\n\
             Content-Type: text/plain\r\n\
             Content-Length: 11\r\n\r\n\
@@ -737,12 +789,12 @@ mod tests {
             .with_header("Content-Type", "text/plain")
             .with_body("Hello World");
         let mut actual: Vec<u8> = Vec::new();
-        Http1::serialise_response(&mut actual, &response).unwrap();
+        Http1::serialize_response(&mut actual, &response).unwrap();
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn serialise_response_correct_headers_content_length() {
+    fn serialize_response_correct_headers_content_length() {
         let expected = "HTTP/1.1 200 OK\r\n\
             Content-Type: text/plain\r\n\
             Content-Length: 15\r\n\r\n\
@@ -753,7 +805,7 @@ mod tests {
             .with_header("Content-Length", "15")
             .with_body("Hello World");
         let mut actual: Vec<u8> = Vec::new();
-        Http1::serialise_response(&mut actual, &response).unwrap();
+        Http1::serialize_response(&mut actual, &response).unwrap();
         assert_eq!(actual, expected);
     }
 }
