@@ -24,6 +24,60 @@
 use std::error::Error;
 use std::fmt;
 
+/// `ConnectionError`
+///
+/// The enumeration of available connection error types. Each variant houses an
+/// inner `String` context to be provided by the user of the error.
+///
+/// # Examples
+/// ```rust
+/// use foxpaw_habanero::err::ConnectionError;
+///
+/// fn my_parsing_method(input: &str) -> Result<(), ConnectionError> {
+///     if input.is_empty() {
+///         return Err(ConnectionError::Parse("The provided data could not be parsed".to_string()));
+///     }
+///     Ok(())
+///}
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum ConnectionError {
+    Parse(String),
+    Serialize(String),
+}
+
+impl fmt::Display for ConnectionError {
+    /// Fmt
+    ///
+    /// Format the `ConnectionError` for Display.
+    ///
+    /// # Error
+    /// This method will error if the underlying call to write errors.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::err::ConnectionError;
+    ///
+    /// let error = ConnectionError::Parse("Invalid value found when parsing".to_string());
+    /// println!("{error}");
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Parse(inner) if !inner.is_empty() => {
+                write!(f, "ConnectionError::Parse => {inner}")
+            }
+            Self::Parse(_) => write!(f, "ConnectionError::Parse"),
+            Self::Serialize(inner) if !inner.is_empty() => {
+                write!(f, "ConnectionError::Serialize => {inner}")
+            }
+            Self::Serialize(_) => write!(f, "ConnectionError::Serialize"),
+        }
+    }
+}
+
+impl Error for ConnectionError {}
+
 /// `ParseError`
 ///
 /// The enumeration of available parsing error types. Each variant houses an
@@ -131,6 +185,20 @@ impl Error for SerializeError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn connection_error_fmt_correct() {
+        let expected = "ConnectionError::Parse => Custom context".to_string();
+        let actual = ConnectionError::Parse("Custom context".to_string()).to_string();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn connection_error_fmt_empty() {
+        let expected = "ConnectionError::Parse".to_string();
+        let actual = ConnectionError::Parse(String::new()).to_string();
+        assert_eq!(actual, expected);
+    }
 
     #[test]
     fn parse_error_fmt_correct() {

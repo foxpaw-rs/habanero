@@ -10,6 +10,7 @@
 
 pub mod codec;
 mod common;
+pub mod connection;
 pub mod err;
 pub mod transport;
 

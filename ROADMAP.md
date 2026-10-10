@@ -3,8 +3,6 @@
 ## Version 0.1
 
 ### Todo
-- [ ] Connection
-: Create a `Connection` trait, and `Http1` which implements it under the `server/connection` module. Additionally, create a `Connection` and a `Http1` which implements it under the `client/connection` module. The connection types wrap a `Transport` type, which will allow for longer lasting and multiplexed connections at a future stage.
 - [ ] Server
 : Create a `Server` struct which wraps incoming requests into the `transport/Tcp` type. This should use a `codec/Http1` to obtain a `common/Request` which gets passed to a `Router` type which will need to be created and handle the business logic, returning a `common/Response`. The `common/Response` gets serialised by the `codec/Http1` ready to be sent back via the `Server`.
 - [ ] Client
@@ -13,6 +11,8 @@
 : Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Doing
+- [/] Connection
+: Create a `Connection` trait, and `Http1` which implements it under the `server/connection` module. Additionally, create a `Connection` and a `Http1` which implements it under the `client/connection` module. The connection types wrap a `Transport` type, which will allow for longer lasting and multiplexed connections at a future stage.
 
 ### Done
 - [x] Codec

@@ -417,7 +417,6 @@ impl Http1 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Method;
 
     #[test]
     fn http1_parse_request_correct() {
