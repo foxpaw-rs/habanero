@@ -15,3 +15,6 @@ pub mod err;
 pub mod transport;
 
 pub use common::{Headers, Method, Request, Response, Scheme, Url, Version};
+
+#[cfg(test)]
+mod mock;

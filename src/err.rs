@@ -31,11 +31,13 @@ use std::fmt;
 ///
 /// # Examples
 /// ```rust
-/// use foxpaw_habanero::err::ConnectionError;
+/// use foxpaw_habanero::err::*;
 ///
 /// fn my_parsing_method(input: &str) -> Result<(), ConnectionError> {
 ///     if input.is_empty() {
-///         return Err(ConnectionError::Parse("The provided data could not be parsed".to_string()));
+///         return Err(ConnectionError::Parse(
+///             ParseError::Empty("More context".to_string())
+///         ));
 ///     }
 ///     Ok(())
 ///}
@@ -43,8 +45,8 @@ use std::fmt;
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum ConnectionError {
-    Parse(String),
-    Serialize(String),
+    Parse(ParseError),
+    Serialize(SerializeError),
 }
 
 impl fmt::Display for ConnectionError {
@@ -57,26 +59,42 @@ impl fmt::Display for ConnectionError {
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::err::ConnectionError;
+    /// use foxpaw_habanero::err::*;
     ///
-    /// let error = ConnectionError::Parse("Invalid value found when parsing".to_string());
+    /// let error = ConnectionError::Parse(
+    ///     ParseError::Invalid("Invalid value found when parsing".to_string())
+    /// );
     /// println!("{error}");
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Parse(inner) if !inner.is_empty() => {
-                write!(f, "ConnectionError::Parse => {inner}")
-            }
-            Self::Parse(_) => write!(f, "ConnectionError::Parse"),
-            Self::Serialize(inner) if !inner.is_empty() => {
-                write!(f, "ConnectionError::Serialize => {inner}")
-            }
-            Self::Serialize(_) => write!(f, "ConnectionError::Serialize"),
+            Self::Parse(inner) => write!(f, "ConnectionError::{inner}"),
+            Self::Serialize(inner) => write!(f, "ConnectionError::{inner}"),
         }
     }
 }
 
 impl Error for ConnectionError {}
+
+impl From<ParseError> for ConnectionError {
+    /// From
+    ///
+    /// Convert from a [`ParseError`] into a `ConnectionError` by wrapping it
+    /// in the `ConnectionError::Parse` variant.
+    fn from(e: ParseError) -> Self {
+        Self::Parse(e)
+    }
+}
+
+impl From<SerializeError> for ConnectionError {
+    /// From
+    ///
+    /// Convert from a [`SerializeError`] into a `ConnectionError` by wrapping
+    /// it in the `ConnectionError::Serialize` variant.
+    fn from(e: SerializeError) -> Self {
+        Self::Serialize(e)
+    }
+}
 
 /// `ParseError`
 ///
@@ -188,15 +206,16 @@ mod tests {
 
     #[test]
     fn connection_error_fmt_correct() {
-        let expected = "ConnectionError::Parse => Custom context".to_string();
-        let actual = ConnectionError::Parse("Custom context".to_string()).to_string();
+        let expected = "ConnectionError::ParseError::Invalid => Custom context".to_string();
+        let actual =
+            ConnectionError::Parse(ParseError::Invalid("Custom context".to_string())).to_string();
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn connection_error_fmt_empty() {
-        let expected = "ConnectionError::Parse".to_string();
-        let actual = ConnectionError::Parse(String::new()).to_string();
+        let expected = "ConnectionError::ParseError::Invalid".to_string();
+        let actual = ConnectionError::Parse(ParseError::Invalid(String::new())).to_string();
         assert_eq!(actual, expected);
     }
 
