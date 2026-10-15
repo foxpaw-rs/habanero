@@ -11,10 +11,10 @@
 : Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Doing
-- [/] Connection
-: Create a `Connection` trait, and `Http1` which implements it under the `server/connection` module. Additionally, create a `Connection` and a `Http1` which implements it under the `client/connection` module. The connection types wrap a `Transport` type, which will allow for longer lasting and multiplexed connections at a future stage.
 
 ### Done
+- [x] Connection
+: Create a `Client` trait, and `Http1Client` which implements it under the `connection` module. Additionally, create a `Server` and a `Http1Server` which implements it under the `connection` module. The connection types wrap a `Transport` type, which will allow for longer lasting and multiplexed connections at a future stage.
 - [x] Codec
 : Create a `Http1` codec under the `codec` module. This is in charge of serialising and parsing both `common/Request` and `common/Response` from and into byte slices.
 - [x] Transport

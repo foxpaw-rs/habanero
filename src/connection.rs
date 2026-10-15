@@ -1,6 +1,64 @@
 //! Connection
 //!
-//! Todo: Module documentation
+//! This module houses the connection types used by the [`Client`] and 
+//! [`Server`] to send and receive requests over a [`Transport`] type. These
+//! types are responsible for doing the logic required for the different HTTP
+//! versions while the actual sending and receiving over the network is 
+//! abstracted to the [`Transport`] types.
+//!
+//! # Architecture
+//! This module provides two primary traits:
+//! * [`Client`]: Used by the client to send a [`Request`] over a [`Transport`]
+//!   receiving a [`Response`]; and
+//! * [`Server`]: Used by the server to obtain the next [`Request`], returning 
+//!   it to the caller for review, routing and business logic, before sending
+//!   back a [`Response`] to the remote. 
+//!
+//! Additionally, this module supplies a connection type for each trait for
+//! each version:
+//! * [`Http1Client`]; and
+//! * [`Http1Server`].
+//!
+//! # Examples
+//! ## Using an [`HTTP1Client`]
+//! ```rust, no_run
+//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::connection::{Client, Http1Client};
+//! use foxpaw_habanero::transport::Tcp;
+//! use std::net::TcpStream;
+//!
+//! fn send() -> Result<Response, String> {
+//!     let stream = TcpStream::connect("127.0.0.1")
+//!         .map_err(|e| e.to_string())?;
+//!     let mut transport = Tcp::new(stream);
+//!     let request = Request::new(Method::Get, "/", Version::Http11);
+//!     let mut client_connection = Http1Client::new(transport);
+//!     let response = client_connection.send_request(request).map_err(|e| e.to_string())?;
+//!     Ok(response)
+//! }
+//! ```
+//! ## Using an [`HTTP1Server`]
+//! ```rust, no_run
+//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::connection::{Server, Http1Server};
+//! use foxpaw_habanero::transport::Tcp;
+//! use std::net::TcpStream;
+//!
+//! fn server() -> Result<(), String> {
+//!     let stream = TcpStream::connect("127.0.0.1")
+//!         .map_err(|e| e.to_string())?;
+//!     let mut transport = Tcp::new(stream);
+//!     let mut server_connection = Http1Server::new(transport);
+//!     
+//!     let request = server_connection.next_request().map_err(|e| e.to_string())?;
+//!     
+//!     // Do business logic here, we'll just create a response...
+//!     let response = Response::new(Version::Http11, 200);
+//!     server_connection.send_response(response).map_err(|e| e.to_string())?;
+//!     
+//!     Ok(())
+//! }
+//! ```
 
 use crate::codec;
 use crate::common::{Request, Response};
@@ -139,7 +197,7 @@ where
 /// use foxpaw_habanero::transport::Tcp;
 /// use std::net::TcpStream;
 ///
-/// fn send() -> Result<(), String> {
+/// fn server() -> Result<(), String> {
 ///     let stream = TcpStream::connect("127.0.0.1")
 ///         .map_err(|e| e.to_string())?;
 ///     let mut transport = Tcp::new(stream);
