@@ -1,18 +1,18 @@
 //! Connection
 //!
-//! This module houses the connection types used by the [`Client`] and 
+//! This module houses the connection types used by the [`Client`] and
 //! [`Server`] to send and receive requests over a [`Transport`] type. These
 //! types are responsible for doing the logic required for the different HTTP
-//! versions while the actual sending and receiving over the network is 
+//! versions while the actual sending and receiving over the network is
 //! abstracted to the [`Transport`] types.
 //!
 //! # Architecture
 //! This module provides two primary traits:
 //! * [`Client`]: Used by the client to send a [`Request`] over a [`Transport`]
 //!   receiving a [`Response`]; and
-//! * [`Server`]: Used by the server to obtain the next [`Request`], returning 
+//! * [`Server`]: Used by the server to obtain the next [`Request`], returning
 //!   it to the caller for review, routing and business logic, before sending
-//!   back a [`Response`] to the remote. 
+//!   back a [`Response`] to the remote.
 //!
 //! Additionally, this module supplies a connection type for each trait for
 //! each version:
@@ -423,7 +423,7 @@ mod tests {
     }
 
     #[test]
-    fn http1_client_send_request_serialise_error() {
+    fn http1_client_send_request_serialize_error() {
         let mut connection = Http1Client::new(MockTransport::new(b"").close_connection());
         let request = Request::new(Method::Get, "/", Version::Http11);
 
