@@ -11,10 +11,10 @@ pub struct MockTransport {
 }
 
 impl MockTransport {
-    pub fn new(expected: &[u8]) -> Self {
+    pub fn new(input: &[u8]) -> Self {
         Self {
             closed: false,
-            read_cursor: Cursor::new(expected.to_vec()),
+            read_cursor: Cursor::new(input.to_vec()),
             write_buffer: Vec::new(),
         }
     }

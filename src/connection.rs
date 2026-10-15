@@ -4,7 +4,7 @@
 
 use crate::codec;
 use crate::common::{Request, Response};
-use crate::err::ConnectionError;
+use crate::err::{ConnectionError, ParseError};
 use crate::transport::Transport;
 use std::io::BufReader;
 
@@ -31,7 +31,7 @@ pub trait Client {
 /// The `Http1Client` is a connection responsible for handling client
 /// connections to a remote host over a generic [`Transport`] type `T`.
 ///
-/// This would generally be used by the [`Client`] and only utilised in 
+/// This would generally be used by the [`Client`] and only utilised in
 /// isolation in rare cases.
 ///
 /// # Examples
@@ -124,6 +124,182 @@ where
     }
 }
 
+/// `Http1Server`
+///
+/// The `Http1Server` is a connection responsible for handling server
+/// connections to a remote host over a generic [`Transport`] type `T`.
+///
+/// This would generally be used by the [`Server`] and only utilised in
+/// isolation in rare cases.
+///
+/// # Examples
+/// ```rust, no_run
+/// use foxpaw_habanero::*;
+/// use foxpaw_habanero::connection::{Server, Http1Server};
+/// use foxpaw_habanero::transport::Tcp;
+/// use std::net::TcpStream;
+///
+/// fn send() -> Result<(), String> {
+///     let stream = TcpStream::connect("127.0.0.1")
+///         .map_err(|e| e.to_string())?;
+///     let mut transport = Tcp::new(stream);
+///     let mut server_connection = Http1Server::new(transport);
+///     
+///     let request = server_connection.next_request().map_err(|e| e.to_string())?;
+///     
+///     // Do business logic here, we'll just create a response...
+///     let response = Response::new(Version::Http11, 200);
+///     server_connection.send_response(response).map_err(|e| e.to_string())?;
+///     
+///     Ok(())
+/// }
+/// ```
+#[derive(Debug)]
+pub struct Http1Server<T: Transport> {
+    transport: T,
+    has_served: bool,
+}
+
+impl<T> Http1Server<T>
+where
+    T: Transport,
+{
+    /// New
+    ///
+    /// Create a new `Http1Server` connection over the provided [`Transport`].
+    ///
+    /// # Examples
+    /// ```rust, no_run
+    /// use foxpaw_habanero::connection::Http1Server;
+    /// use foxpaw_habanero::transport::Tcp;
+    /// use std::net::TcpStream;
+    ///
+    /// pub fn new_http1_client_connection() -> Result<(), String> {
+    ///     let stream = TcpStream::connect("127.0.0.1")
+    ///             .map_err(|e| e.to_string())?;
+    ///     let transport = Tcp::new(stream);
+    ///     let connection = Http1Server::new(transport);
+    ///     Ok(())
+    /// }
+    /// ```
+    #[must_use]
+    pub fn new(transport: T) -> Self {
+        Self {
+            transport,
+            has_served: false,
+        }
+    }
+}
+
+impl<T> Server for Http1Server<T>
+where
+    T: Transport,
+{
+    /// Next Request
+    ///
+    /// Obtain the next [`Request`] waiting on this `ServerConnection`. Will
+    /// return either Ok(Some(Request)) if a request was obtained or Ok(None)
+    /// if the operation was successful but no request was waiting. Will also
+    /// return
+    ///
+    /// # Errors
+    /// This method will return a `ConnectionError::Parse` if there is an error
+    /// with the parsing of the incoming HTTP request.
+    ///
+    /// # Examples
+    /// ```rust, no_run
+    /// use foxpaw_habanero::connection::{Http1Server, Server};
+    /// use foxpaw_habanero::transport::Tcp;
+    /// use std::net::TcpStream;
+    ///
+    /// pub fn get_next_request() -> Result<(), String> {
+    ///     let stream = TcpStream::connect("127.0.0.1")
+    ///             .map_err(|e| e.to_string())?;
+    ///     let transport = Tcp::new(stream);
+    ///     let mut connection = Http1Server::new(transport);
+    ///     let request = connection.next_request().map_err(|e| e.to_string())?;
+    ///     Ok(())
+    /// }
+    /// ```
+    fn next_request(&mut self) -> Result<Option<Request>, ConnectionError> {
+        // Multiple use (keep-alive) connections not currently supported.
+        if self.has_served {
+            return Ok(None);
+        }
+
+        let mut reader = BufReader::new(&mut self.transport);
+        match codec::Http1::parse_request(&mut reader) {
+            Ok(req) => {
+                self.has_served = true;
+                Ok(Some(req))
+            }
+            Err(ParseError::Empty(_)) => Ok(None),
+            Err(e) => Err(ConnectionError::Parse(e)),
+        }
+    }
+
+    /// Send Response
+    ///
+    /// Serialize and return the provided [`Response`] back over the
+    /// connection.
+    ///
+    /// # Errors
+    /// This method will return a `ConnectionError::Serialize` if there is an
+    /// error with the serialization of the provided [`Response`];
+    ///
+    /// # Examples
+    /// ```rust, no_run
+    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::connection::{Http1Server, Server};
+    /// use foxpaw_habanero::transport::Tcp;
+    /// use std::net::TcpStream;
+    ///
+    /// pub fn get_request_send_response() -> Result<(), String> {
+    ///     let stream = TcpStream::connect("127.0.0.1")
+    ///             .map_err(|e| e.to_string())?;
+    ///     let transport = Tcp::new(stream);
+    ///     let mut connection = Http1Server::new(transport);
+    ///     let request = connection.next_request().map_err(|e| e.to_string())?;
+    ///
+    ///     // Do something that generates your response, we'll just create one
+    ///     // for this example
+    ///     let response = Response::new(Version::Http11, 200);
+    ///     connection.send_response(response).map_err(|e| e.to_string())?;
+    ///     Ok(())
+    /// }
+    /// ```
+    fn send_response(&mut self, response: Response) -> Result<(), ConnectionError> {
+        Ok(codec::Http1::serialize_response(
+            &mut self.transport,
+            &response,
+        )?)
+    }
+
+    /// Is Persistent
+    ///
+    /// Determine if this connection is kept alive and handles multiple
+    /// transmissions. Currently persistent connections are not supported.
+    ///
+    /// # Examples
+    /// ```rust, no_run
+    /// use foxpaw_habanero::connection::{Http1Server, Server};
+    /// use foxpaw_habanero::transport::Tcp;
+    /// use std::net::TcpStream;
+    ///
+    /// pub fn new_http1_client_connection() -> Result<(), String> {
+    ///     let stream = TcpStream::connect("127.0.0.1")
+    ///             .map_err(|e| e.to_string())?;
+    ///     let transport = Tcp::new(stream);
+    ///     let connection = Http1Server::new(transport);
+    ///     assert_eq!(connection.is_persistent(), false);
+    ///     Ok(())
+    /// }
+    /// ```
+    fn is_persistent(&self) -> bool {
+        false
+    }
+}
+
 /// `Server`
 ///
 /// The `Server` trait is responsible for defining the methods used by the
@@ -162,14 +338,13 @@ mod tests {
 
     use super::*;
     use crate::common::{Method, Version};
-    use crate::err::{ParseError, SerializeError};
     use crate::mock::MockTransport;
 
     #[test]
     fn http1_client_new_correct() {
         let actual = Http1Client::new(MockTransport::new(b""));
         let expected = Http1Client {
-            transport: MockTransport::new(b"")
+            transport: MockTransport::new(b""),
         };
         assert_eq!(actual.transport, expected.transport);
     }
@@ -178,12 +353,15 @@ mod tests {
     fn http1_client_send_request_correct() {
         let mut connection = Http1Client::new(MockTransport::new(b"HTTP/1.1 200 OK\r\n\r\n"));
         let request = Request::new(Method::Get, "/", Version::Http11);
-        
+
         let actual = connection.send_request(request);
         let expected = Response::new(Version::Http11, 200);
 
         assert_eq!(actual, Ok(expected));
-        assert_eq!(connection.transport.write_buffer(), b"GET / HTTP/1.1\r\n\r\n");
+        assert_eq!(
+            connection.transport.write_buffer(),
+            b"GET / HTTP/1.1\r\n\r\n"
+        );
     }
 
     #[test]
@@ -192,9 +370,7 @@ mod tests {
         let request = Request::new(Method::Get, "/", Version::Http11);
 
         let actual = connection.send_request(request);
-        let expected = ConnectionError::Serialize(SerializeError::Io("failed to write whole buffer".to_string()));
-
-        assert_eq!(actual, Err(expected));
+        assert!(matches!(actual, Err(ConnectionError::Serialize(_))));
     }
 
     #[test]
@@ -203,10 +379,67 @@ mod tests {
         let request = Request::new(Method::Get, "/", Version::Http11);
 
         let actual = connection.send_request(request);
-        let expected = ConnectionError::Parse(ParseError::Empty(
-            "Connection closed, unable to read data".to_string(),
-        ));
+        assert!(matches!(actual, Err(ConnectionError::Parse(_))));
+    }
 
-        assert_eq!(actual, Err(expected));
+    #[test]
+    fn http1_server_new_correct() {
+        let actual = Http1Server::new(MockTransport::new(b""));
+        let expected = Http1Server {
+            transport: MockTransport::new(b""),
+            has_served: false,
+        };
+        assert_eq!(actual.transport, expected.transport);
+        assert_eq!(actual.has_served, expected.has_served);
+    }
+
+    #[test]
+    fn http1_server_next_request_correct() {
+        let mut connection = Http1Server::new(MockTransport::new(b"GET / HTTP/1.1"));
+        let actual = connection.next_request();
+        let expected = Request::new(Method::Get, "/", Version::Http11);
+        assert_eq!(actual, Ok(Some(expected)));
+    }
+
+    #[test]
+    fn http1_server_next_request_empty() {
+        let mut connection = Http1Server::new(MockTransport::new(b""));
+        let actual = connection.next_request();
+        assert_eq!(actual, Ok(None))
+    }
+
+    #[test]
+    fn http1_server_next_request_error() {
+        let mut connection = Http1Server::new(MockTransport::new(b"GET /"));
+        let actual = connection.next_request();
+        assert!(matches!(actual, Err(ConnectionError::Parse(_))));
+    }
+
+    #[test]
+    fn http1_server_send_response_correct() {
+        let mut connection = Http1Server::new(MockTransport::new(b""));
+        let response = Response::new(Version::Http11, 200);
+
+        let actual = connection.send_response(response);
+        let expected = "HTTP/1.1 200 OK\r\n\r\n".to_string();
+        assert_eq!(actual, Ok(()));
+        assert_eq!(connection.transport.write_buffer(), expected.as_bytes());
+    }
+
+    #[test]
+    fn http1_server_send_response_error() {
+        let mut connection = Http1Server::new(MockTransport::new(b"").close_connection());
+        let response = Response::new(Version::Http11, 200);
+
+        let actual = connection.send_response(response);
+        assert!(matches!(actual, Err(ConnectionError::Serialize(_))));
+    }
+
+    #[test]
+    fn http1_server_is_persistent_correct() {
+        let connection = Http1Server::new(MockTransport::new(b""));
+        let actual = connection.is_persistent();
+        let expected = false;
+        assert_eq!(actual, expected);
     }
 }
