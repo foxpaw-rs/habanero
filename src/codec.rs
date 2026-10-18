@@ -65,10 +65,6 @@ impl Http1 {
                     .read_exact(&mut body)
                     .map_err(|e| ParseError::Malformed(e.to_string()))?;
             }
-        } else {
-            reader
-                .read_to_end(&mut body)
-                .map_err(|e| ParseError::Malformed(e.to_string()))?;
         }
         Ok(body)
     }
@@ -155,6 +151,7 @@ impl Http1 {
                 "Unsupported HTTP version: {version:?}"
             )));
         }
+
         let mut request = Request::new(method, url, version);
         request.headers = Self::parse_headers(reader)?;
         request.body = Self::parse_body(reader, &request.headers)?;

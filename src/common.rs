@@ -31,7 +31,7 @@
 //! use foxpaw_habanero::*;
 //!
 //! let response = Response::new(Version::Http11, 200)
-//!     .html("<html></html>")
+//!     .with_html("<html></html>")
 //!     .with_header("my-value", "My Header")
 //!     .with_body("Hello World");
 //! ```
@@ -399,60 +399,6 @@ impl Response {
         }
     }
 
-    /// Html
-    ///
-    /// Insert an HTML body into the `Response`. Automatically sets the
-    /// Content-Type and Content-Length headers based on the provided body.
-    ///
-    /// Note that this method consumes and returns the altered `Response`
-    /// instance and is deigned to be chained, invalidating the original
-    /// object.
-    ///
-    /// # Examples
-    /// ```rust
-    /// use foxpaw_habanero::*;
-    ///
-    /// let response = Response::new(Version::Http11, 200)
-    ///     .html("<html></html>");
-    /// ```
-    #[must_use]
-    pub fn html(mut self, body: impl Into<Vec<u8>>) -> Self {
-        let b = body.into();
-        self.headers = self
-            .headers
-            .insert("Content-Type", "text/html")
-            .insert("Content-Length", b.len().to_string());
-        self.body = b;
-        self
-    }
-
-    /// Json
-    ///
-    /// Insert a JSON body into the `Response`. Automatically sets the
-    /// Content-Type and Content-Length headers based on the provided body.
-    ///
-    /// Note that this method consumes and returns the altered `Response`
-    /// instance and is deigned to be chained, invalidating the original
-    /// object.
-    ///
-    /// # Examples
-    /// ```rust
-    /// use foxpaw_habanero::*;
-    ///
-    /// let response = Response::new(Version::Http11, 200)
-    ///     .json("{value: 42}");
-    /// ```
-    #[must_use]
-    pub fn json(mut self, body: impl Into<Vec<u8>>) -> Self {
-        let b = body.into();
-        self.headers = self
-            .headers
-            .insert("Content-Type", "application/json")
-            .insert("Content-Length", b.len().to_string());
-        self.body = b;
-        self
-    }
-
     /// With Body
     ///
     /// Fluently sets a body on this `Response`, consuming the original object
@@ -486,6 +432,60 @@ impl Response {
     #[must_use]
     pub fn with_header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.headers = self.headers.insert(key, value);
+        self
+    }
+
+    /// With Html
+    ///
+    /// Insert an HTML body into the `Response`. Automatically sets the
+    /// Content-Type and Content-Length headers based on the provided body.
+    ///
+    /// Note that this method consumes and returns the altered `Response`
+    /// instance and is deigned to be chained, invalidating the original
+    /// object.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// let response = Response::new(Version::Http11, 200)
+    ///     .with_html("<html></html>");
+    /// ```
+    #[must_use]
+    pub fn with_html(mut self, body: impl Into<Vec<u8>>) -> Self {
+        let b = body.into();
+        self.headers = self
+            .headers
+            .insert("Content-Type", "text/html")
+            .insert("Content-Length", b.len().to_string());
+        self.body = b;
+        self
+    }
+
+    /// With Json
+    ///
+    /// Insert a JSON body into the `Response`. Automatically sets the
+    /// Content-Type and Content-Length headers based on the provided body.
+    ///
+    /// Note that this method consumes and returns the altered `Response`
+    /// instance and is deigned to be chained, invalidating the original
+    /// object.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// let response = Response::new(Version::Http11, 200)
+    ///     .with_json("{value: 42}");
+    /// ```
+    #[must_use]
+    pub fn with_json(mut self, body: impl Into<Vec<u8>>) -> Self {
+        let b = body.into();
+        self.headers = self
+            .headers
+            .insert("Content-Type", "application/json")
+            .insert("Content-Length", b.len().to_string());
+        self.body = b;
         self
     }
 }
@@ -907,7 +907,7 @@ mod tests {
 
     #[test]
     fn response_html_correct() {
-        let actual = Response::new(Version::Http11, 200).html("<html></html>");
+        let actual = Response::new(Version::Http11, 200).with_html("<html></html>");
         assert_eq!(actual.headers.find("Content-Type"), Some("text/html"));
         assert_eq!(actual.headers.find("Content-Length"), Some("13"));
         assert_eq!(actual.body, "<html></html>".as_bytes());
@@ -915,7 +915,7 @@ mod tests {
 
     #[test]
     fn response_json_correct() {
-        let actual = Response::new(Version::Http11, 200).json("{value: 42}");
+        let actual = Response::new(Version::Http11, 200).with_json("{value: 42}");
         assert_eq!(
             actual.headers.find("Content-Type"),
             Some("application/json")
