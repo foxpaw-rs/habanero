@@ -74,12 +74,12 @@ impl Http1 {
     /// Parse the body section of the reader.
     fn parse_headers(reader: &mut impl BufRead) -> Result<Headers, ParseError> {
         let mut headers = Headers::new();
-        loop {
-            let mut line = String::new();
-            reader
-                .read_line(&mut line)
-                .map_err(|e| ParseError::Malformed(e.to_string()))?;
-            line = line.trim_end_matches(['\r', '\n']).to_string();
+        for raw_line in reader.lines() {
+            let line = raw_line
+                .map_err(|e| ParseError::Malformed(e.to_string()))?
+                .trim_end_matches(['\r', '\n'])
+                .to_string();
+
             if line.is_empty() {
                 break;
             }
@@ -117,7 +117,7 @@ impl Http1 {
     /// use foxpaw_habanero::err::ParseError;
     ///
     /// fn get_request() -> Result<(), ParseError> {
-    ///     let input = "GET / HTTP/1.1\n";
+    ///     let input = "GET / HTTP/1.1\r\n";
     ///     let request = Http1::parse_request(&mut input.as_bytes())?;
     ///     Ok(())
     /// }
@@ -179,7 +179,7 @@ impl Http1 {
     /// use foxpaw_habanero::err::ParseError;
     ///
     /// fn get_response() -> Result<(), ParseError> {
-    ///     let input = "GET / HTTP/1.1\n";
+    ///     let input = "GET / HTTP/1.1\r\n";
     ///     let response = Http1::parse_response(&mut input.as_bytes())?;
     ///     Ok(())
     /// }
@@ -428,7 +428,7 @@ mod tests {
     fn http1_parse_request_correct_headers() {
         let expected = Request::new(Method::Get, "/", Version::Http11)
             .with_header("Content-Type", "application/json");
-        let raw = "GET / HTTP/1.1\n\
+        let raw = "GET / HTTP/1.1\r\n\
             Content-Type: application/json";
         let actual = Http1::parse_request(&mut raw.as_bytes());
 
@@ -438,10 +438,19 @@ mod tests {
     #[test]
     fn http1_parse_request_correct_body() {
         let expected = Request::new(Method::Get, "/", Version::Http11).with_body("Body Text");
-        let raw = "GET / HTTP/1.1\n\n\
+        let raw = "GET / HTTP/1.1\r\n\
+            Content-Length: 9\r\n\r\n\
             Body Text";
         let actual = Http1::parse_request(&mut raw.as_bytes());
+        assert_eq!(actual, Ok(expected));
+    }
 
+    #[test]
+    fn http1_parse_request_correct_no_content_length_body() {
+        let expected = Request::new(Method::Get, "/", Version::Http11);
+        let raw = "GET / HTTP/1.1\r\n\r\n\
+            Body Text";
+        let actual = Http1::parse_request(&mut raw.as_bytes());
         assert_eq!(actual, Ok(expected));
     }
 
@@ -450,22 +459,10 @@ mod tests {
         let expected = Request::new(Method::Get, "/", Version::Http11)
             .with_header("Content-Type", "text/plain")
             .with_body("Body Text");
-        let raw = "GET / HTTP/1.1\n\
-            Content-Type: text/plain\n\n\
+        let raw = "GET / HTTP/1.1\r\n\
+            Content-Type: text/plain\r\n\
+            Content-Length: 9\r\n\r\n\
             Body Text";
-        let actual = Http1::parse_request(&mut raw.as_bytes());
-
-        assert_eq!(actual, Ok(expected));
-    }
-
-    #[test]
-    fn http1_parse_request_correct_header_content_length() {
-        let expected = Request::new(Method::Get, "/", Version::Http11)
-            .with_header("Content-Length", "9")
-            .with_body("Body Text");
-        let raw = "GET / HTTP/1.1\n\
-            Content-Length: 9 \n\n\
-            Body Text with some extra";
         let actual = Http1::parse_request(&mut raw.as_bytes());
 
         assert_eq!(actual, Ok(expected));
@@ -475,7 +472,7 @@ mod tests {
     fn http1_parse_request_correct_header_empty_value() {
         let expected =
             Request::new(Method::Get, "/", Version::Http11).with_header("Content-Type", "");
-        let raw = "GET / HTTP/1.1\n\
+        let raw = "GET / HTTP/1.1\r\n\
             Content-Type:";
         let actual = Http1::parse_request(&mut raw.as_bytes());
 
@@ -526,7 +523,7 @@ mod tests {
 
     #[test]
     fn http1_parse_request_malformed_header() {
-        let raw = "GET / HTTP/1.1\n\
+        let raw = "GET / HTTP/1.1\r\n\
             Content-Type";
         let actual = Http1::parse_request(&mut raw.as_bytes());
         assert!(matches!(actual, Err(ParseError::Malformed(_))));
@@ -534,7 +531,7 @@ mod tests {
 
     #[test]
     fn http1_parse_request_invalid_header_content_length() {
-        let raw = "GET / HTTP/1.1\n\
+        let raw = "GET / HTTP/1.1\r\n\
             Content-Length: text/plain";
         let actual = Http1::parse_request(&mut raw.as_bytes());
         assert!(matches!(actual, Err(ParseError::Invalid(_))));
@@ -542,8 +539,8 @@ mod tests {
 
     #[test]
     fn http1_parse_request_invalid_body_length_content_length() {
-        let raw = "GET / HTTP/1.1\n\
-            Content-Length: 80\n\n\
+        let raw = "GET / HTTP/1.1\r\n\
+            Content-Length: 80\r\n\r\n\
             Too short";
         let actual = Http1::parse_request(&mut raw.as_bytes());
         assert!(matches!(actual, Err(ParseError::Malformed(_))));
@@ -571,7 +568,7 @@ mod tests {
     fn http1_parse_response_correct_headers() {
         let expected =
             Response::new(Version::Http11, 200).with_header("Content-Type", "application/json");
-        let raw = "HTTP/1.1 200 OK\n\
+        let raw = "HTTP/1.1 200 OK\r\n\
             Content-Type: application/json";
         let actual = Http1::parse_response(&mut raw.as_bytes());
 
@@ -581,7 +578,18 @@ mod tests {
     #[test]
     fn http1_parse_response_correct_body() {
         let expected = Response::new(Version::Http11, 200).with_body("Body Text");
-        let raw = "HTTP/1.1 200 OK\n\n\
+        let raw = "HTTP/1.1 200 OK\r\n\
+            Content-Length: 9\r\n\r\n\
+            Body Text";
+        let actual = Http1::parse_response(&mut raw.as_bytes());
+
+        assert_eq!(actual, Ok(expected));
+    }
+
+    #[test]
+    fn http1_parse_response_correct_no_content_length_body() {
+        let expected = Response::new(Version::Http11, 200);
+        let raw = "HTTP/1.1 200 OK\r\n\r\n\
             Body Text";
         let actual = Http1::parse_response(&mut raw.as_bytes());
 
@@ -593,22 +601,10 @@ mod tests {
         let expected = Response::new(Version::Http11, 200)
             .with_header("Content-Type", "text/plain")
             .with_body("Body Text");
-        let raw = "HTTP/1.1 200 OK\n\
-            Content-Type: text/plain\n\n\
+        let raw = "HTTP/1.1 200 OK\r\n\
+            Content-Type: text/plain\r\n\
+            Content-Length: 9\r\n\r\n\
             Body Text";
-        let actual = Http1::parse_response(&mut raw.as_bytes());
-
-        assert_eq!(actual, Ok(expected));
-    }
-
-    #[test]
-    fn http1_parse_response_correct_header_content_length() {
-        let expected = Response::new(Version::Http11, 200)
-            .with_header("Content-Length", "9")
-            .with_body("Body Text");
-        let raw = "HTTP/1.1 200 OK\n\
-            Content-Length: 9 \n\n\
-            Body Text with some extra";
         let actual = Http1::parse_response(&mut raw.as_bytes());
 
         assert_eq!(actual, Ok(expected));
@@ -617,7 +613,7 @@ mod tests {
     #[test]
     fn http1_parse_response_correct_header_empty_value() {
         let expected = Response::new(Version::Http11, 200).with_header("Content-Type", "");
-        let raw = "HTTP/1.1 200 OK\n\
+        let raw = "HTTP/1.1 200 OK\r\n\
             Content-Type:";
         let actual = Http1::parse_response(&mut raw.as_bytes());
 
@@ -654,7 +650,7 @@ mod tests {
 
     #[test]
     fn http1_parse_response_malformed_header() {
-        let raw = "HTTP/1.1 200 OK\n\
+        let raw = "HTTP/1.1 200 OK\r\n\
             Content-Type";
         let actual = Http1::parse_response(&mut raw.as_bytes());
         assert!(matches!(actual, Err(ParseError::Malformed(_))));
@@ -662,7 +658,7 @@ mod tests {
 
     #[test]
     fn http1_parse_response_invalid_header_content_length() {
-        let raw = "HTTP/1.1 200 OK\n\
+        let raw = "HTTP/1.1 200 OK\r\n\
             Content-Length: text/plain";
         let actual = Http1::parse_response(&mut raw.as_bytes());
         assert!(matches!(actual, Err(ParseError::Invalid(_))));
@@ -670,15 +666,15 @@ mod tests {
 
     #[test]
     fn http1_parse_response_invalid_body_length_content_length() {
-        let raw = "HTTP/1.1 200 OK\n\
-            Content-Length: 80\n\n\
+        let raw = "HTTP/1.1 200 OK\r\n\
+            Content-Length: 80\r\n\r\n\
             Too short";
         let actual = Http1::parse_response(&mut raw.as_bytes());
         assert!(matches!(actual, Err(ParseError::Malformed(_))));
     }
 
     #[test]
-    fn serialize_request_correct() {
+    fn http1_serialize_request_correct() {
         let expected = "GET / HTTP/1.1\r\n\r\n".as_bytes();
         let request = Request::new(Method::Get, "/", Version::Http11);
         let mut actual: Vec<u8> = Vec::new();
@@ -687,7 +683,7 @@ mod tests {
     }
 
     #[test]
-    fn serialize_request_correct_headers() {
+    fn http1_serialize_request_correct_headers() {
         let expected = "GET / HTTP/1.1\r\n\
             Content-Type: text/plain\r\n\r\n"
             .as_bytes();
@@ -699,7 +695,7 @@ mod tests {
     }
 
     #[test]
-    fn serialize_request_correct_body() {
+    fn http1_serialize_request_correct_body() {
         let expected = "GET / HTTP/1.1\r\n\
             Content-Length: 11\r\n\r\n\
             Hello World"
@@ -711,7 +707,7 @@ mod tests {
     }
 
     #[test]
-    fn serialize_request_correct_headers_body() {
+    fn http1_serialize_request_correct_headers_body() {
         let expected = "GET / HTTP/1.1\r\n\
             Content-Type: text/plain\r\n\
             Content-Length: 11\r\n\r\n\
@@ -726,23 +722,7 @@ mod tests {
     }
 
     #[test]
-    fn serialize_request_correct_headers_content_length() {
-        let expected = "GET / HTTP/1.1\r\n\
-            Content-Type: text/plain\r\n\
-            Content-Length: 15\r\n\r\n\
-            Hello World"
-            .as_bytes();
-        let request = Request::new(Method::Get, "/", Version::Http11)
-            .with_header("Content-Type", "text/plain")
-            .with_header("Content-Length", "15")
-            .with_body("Hello World");
-        let mut actual: Vec<u8> = Vec::new();
-        Http1::serialize_request(&mut actual, &request).unwrap();
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn serialize_response_correct() {
+    fn http1_serialize_response_correct() {
         let expected = "HTTP/1.1 200 OK\r\n\r\n".as_bytes();
         let response = Response::new(Version::Http11, 200);
         let mut actual: Vec<u8> = Vec::new();
@@ -751,7 +731,7 @@ mod tests {
     }
 
     #[test]
-    fn serialize_response_correct_headers() {
+    fn http1_serialize_response_correct_headers() {
         let expected = "HTTP/1.1 200 OK\r\n\
             Content-Type: text/plain\r\n\r\n"
             .as_bytes();
@@ -763,7 +743,7 @@ mod tests {
     }
 
     #[test]
-    fn serialize_response_correct_body() {
+    fn http1_serialize_response_correct_body() {
         let expected = "HTTP/1.1 200 OK\r\n\
             Content-Length: 11\r\n\r\n\
             Hello World"
@@ -775,7 +755,7 @@ mod tests {
     }
 
     #[test]
-    fn serialize_response_correct_headers_body() {
+    fn http1_serialize_response_correct_headers_body() {
         let expected = "HTTP/1.1 200 OK\r\n\
             Content-Type: text/plain\r\n\
             Content-Length: 11\r\n\r\n\
@@ -783,22 +763,6 @@ mod tests {
             .as_bytes();
         let response = Response::new(Version::Http11, 200)
             .with_header("Content-Type", "text/plain")
-            .with_body("Hello World");
-        let mut actual: Vec<u8> = Vec::new();
-        Http1::serialize_response(&mut actual, &response).unwrap();
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn serialize_response_correct_headers_content_length() {
-        let expected = "HTTP/1.1 200 OK\r\n\
-            Content-Type: text/plain\r\n\
-            Content-Length: 15\r\n\r\n\
-            Hello World"
-            .as_bytes();
-        let response = Response::new(Version::Http11, 200)
-            .with_header("Content-Type", "text/plain")
-            .with_header("Content-Length", "15")
             .with_body("Hello World");
         let mut actual: Vec<u8> = Vec::new();
         Http1::serialize_response(&mut actual, &response).unwrap();

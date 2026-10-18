@@ -322,7 +322,8 @@ impl Request {
     #[must_use]
     pub fn with_body(mut self, body: impl Into<Vec<u8>>) -> Self {
         self.body = body.into();
-        self
+        let len = self.body.len();
+        self.with_header("Content-Length", len.to_string())
     }
 
     /// With Header
@@ -414,7 +415,8 @@ impl Response {
     #[must_use]
     pub fn with_body(mut self, body: impl Into<Vec<u8>>) -> Self {
         self.body = body.into();
-        self
+        let len = self.body.len();
+        self.with_header("Content-Length", len.to_string())
     }
 
     /// With Header
