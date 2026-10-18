@@ -188,11 +188,15 @@ impl Headers {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Method {
     Get,
+    Query,
+    Head,
     Post,
     Put,
     Delete,
-    Head,
+    Connect,
     Options,
+    Trace,
+    Patch,
 }
 
 impl FromStr for Method {
@@ -228,11 +232,15 @@ impl FromStr for Method {
     fn from_str(from: &str) -> Result<Self, Self::Err> {
         match from.to_uppercase().as_str() {
             "GET" => Ok(Method::Get),
+            "QUERY" => Ok(Method::Query),
+            "HEAD" => Ok(Method::Head),
             "POST" => Ok(Method::Post),
             "PUT" => Ok(Method::Put),
             "DELETE" => Ok(Method::Delete),
-            "HEAD" => Ok(Method::Head),
+            "CONNECT" => Ok(Method::Connect),
             "OPTIONS" => Ok(Method::Options),
+            "TRACE" => Ok(Method::Trace),
+            "PATCH" => Ok(Method::Patch),
             other => Err(ParseError::Invalid(format!(
                 "Unsupported HTTP method: {other}"
             ))),

@@ -290,11 +290,15 @@ impl Http1 {
     ) -> Result<(), SerializeError> {
         let method = match request.method {
             Method::Get => "GET",
+            Method::Query => "QUERY",
+            Method::Head => "HEAD",
             Method::Post => "POST",
             Method::Put => "PUT",
             Method::Delete => "DELETE",
-            Method::Head => "HEAD",
+            Method::Connect => "CONNECT",
             Method::Options => "OPTIONS",
+            Method::Trace => "TRACE",
+            Method::Patch => "PATCH",
         };
         write!(writer, "{method} {} ", request.uri)
             .map_err(|e| SerializeError::Io(e.to_string()))?;
