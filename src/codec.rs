@@ -419,6 +419,8 @@ impl Http1 {
 mod tests {
     use super::*;
 
+    // impl Http1
+
     #[test]
     fn http1_parse_request_correct() {
         let expected = Request::new(Method::Get, "/", Version::Http11);

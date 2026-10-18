@@ -1,15 +1,34 @@
 //! Router
 //!
-//! Todo: Documentation
+//! This module houses the [`Router`] type, designed to implement the
+//! [`Handler`] trait.
+//!
+//! # Architecture
+//! This module exposes the [`Router`] type, an implementor of the [`Handler`].
+//! It is designed to be provided to a [`Server`] to support more complex
+//! routing.
+//!
+//! # Examples
+//! ```rust
+//! use foxpaw_habanero::*;
+//!
+//! let router = Router::new()
+//!     .with_get("/", |req| Ok(Response::new(Version::Http11, 200)));
+//! ```   
 
 use crate::common::{Method, Request, Response};
 use crate::err::HttpError;
+use crate::server::Handler;
 
+/// `RouteHandler`
+///
+/// The handler type alias for the callback used by the [`Route`].
 type RouteHandler = Box<dyn Fn(Request) -> Result<Response, HttpError> + Send + Sync>;
 
 /// `Route`
 ///
-/// Todo: Documentation / Examples
+/// A single route housed by the router, defining the supporting [`Method`],
+/// path and callback handler.
 struct Route {
     method: Method,
     path: String,
@@ -18,7 +37,18 @@ struct Route {
 
 /// `Router`
 ///
-/// Todo: Documentation / Examples
+/// The `Router` it utilised as a more complex handler than a simple callback
+/// method. The `Router` currently only supports defining a [`Method`] and
+/// [`Path`], however, in future will support more complex features like route
+/// bindings, dynamic paths, groups and middleware.
+///
+/// # Examples
+/// ```rust
+/// use foxpaw_habanero::*;
+///
+/// let router = Router::new()
+///     .with_get("/", |req| Ok(Response::new(Version::Http11, 200)));
+/// ```
 #[derive(Default)]
 pub struct Router {
     routes: Vec<Route>,
@@ -178,10 +208,42 @@ impl Router {
     }
 }
 
+impl Handler for Router {
+    /// Handle
+    ///
+    /// Handle an incoming [`Request`] and return a [`Response`].
+    ///
+    /// # Errors
+    /// This method can error for any reason by the implementing busines logic.
+    ///
+    /// # Examples
+    /// ```rust, no_run
+    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::err::ServerError;
+    ///
+    /// fn start_server() -> Result<(), ServerError> {
+    ///     let server = Server::bind("127.0.0.1:8080")?;
+    ///     let router = Router::new()
+    ///         .with_get("/", |_| Ok(Response::new(Version::Http11, 200)))
+    ///         .with_get("/about", |_| Ok(Response::new(Version::Http11, 200)));
+    ///     server.run(router)?;
+    ///     Ok(())
+    /// }
+    /// ```
+    fn handle(&self, req: Request) -> Result<Response, HttpError> {
+        self.routes
+            .iter()
+            .find(|route| route.method == req.method && route.path == req.uri)
+            .map_or_else(|| Err(HttpError::NotFound), |route| (route.handler)(req))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::common::{Response, Version};
+
+    // impl Router
 
     #[test]
     fn router_new_correct() {

@@ -725,6 +725,8 @@ impl FromStr for Version {
 mod tests {
     use super::*;
 
+    // impl Headers
+
     #[test]
     fn headers_new_correct() {
         let expected = Headers { inner: Vec::new() };
@@ -859,6 +861,8 @@ mod tests {
         assert!(actual.next().is_none());
     }
 
+    // impl Display for Headers
+
     #[test]
     fn method_from_str_correct() {
         let expected = Ok(Method::Get);
@@ -874,6 +878,8 @@ mod tests {
         let actual = Method::from_str("unknown");
         assert_eq!(actual, expected);
     }
+
+    // impl Request
 
     #[test]
     fn request_new_correct() {
@@ -902,6 +908,8 @@ mod tests {
             .with_header("Content-Type", "application/json");
         assert_eq!(actual.headers, expected);
     }
+
+    // impl Response
 
     #[test]
     fn response_new_correct() {
@@ -949,6 +957,8 @@ mod tests {
         assert_eq!(actual.headers, expected);
     }
 
+    // impl FromStr for Scheme
+
     #[test]
     fn scheme_from_str_correct() {
         let expected = Ok(Scheme::Http);
@@ -965,6 +975,8 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
+    // impl FromStr for Url
+
     #[test]
     fn url_from_str_correct() {
         let expected = Url {
@@ -979,8 +991,9 @@ mod tests {
 
     #[test]
     fn url_from_str_https() {
+        // Todo: Change this once HTTPS supported
         // let expected = Url {
-        //     scheme: Scheme::Http,
+        //     scheme: Scheme::Https,
         //     host: "rust-lang.org".to_string(),
         //     port: 80,
         //     path: "/".to_string(),
@@ -1043,6 +1056,8 @@ mod tests {
         let actual = "http://rust-lang.org:port".parse::<Url>();
         assert!(matches!(actual, Err(ParseError::Invalid(_))));
     }
+
+    // impl FromStr for Version
 
     #[test]
     fn version_from_str_correct() {

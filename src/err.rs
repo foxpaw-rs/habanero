@@ -417,6 +417,8 @@ impl Error for ServerError {}
 mod tests {
     use super::*;
 
+    // impl Display for ConnectionError
+
     #[test]
     fn connection_error_fmt_correct() {
         let expected = "ConnectionError::ParseError::Invalid => Custom context".to_string();
@@ -432,12 +434,32 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
+    // impl From<ParseError> for ConnectionError
+    #[test]
+    fn connection_error_from_parse_error() {
+        let actual = ParseError::Empty("".to_string());
+        let expected = ConnectionError::Parse(ParseError::Empty("".to_string()));
+        assert_eq!(ConnectionError::from(actual), expected)
+    }
+
+    // impl From<SerializeError> for ConnectionError
+    #[test]
+    fn connection_error_from_serialize_error() {
+        let actual = SerializeError::Io("".to_string());
+        let expected = ConnectionError::Serialize(SerializeError::Io("".to_string()));
+        assert_eq!(ConnectionError::from(actual), expected)
+    }
+
+    // impl Display for HttpError
+
     #[test]
     fn http_error_fmt_correct() {
         let expected = "HttpError::NotFound => 404".to_string();
         let actual = HttpError::NotFound.to_string();
         assert_eq!(actual, expected);
     }
+
+    // impl Display for ParseError
 
     #[test]
     fn parse_error_fmt_correct() {
@@ -453,6 +475,8 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
+    // impl Display for SerializeError
+
     #[test]
     fn serialize_error_fmt_correct() {
         let expected = "SerializeError::Io => Custom context".to_string();
@@ -466,6 +490,8 @@ mod tests {
         let actual = SerializeError::Io(String::new()).to_string();
         assert_eq!(actual, expected);
     }
+
+    // impl Display for ServerError
 
     #[test]
     fn server_error_fmt_correct() {

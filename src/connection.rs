@@ -398,6 +398,8 @@ mod tests {
     use crate::common::{Method, Version};
     use crate::mock::MockTransport;
 
+    // impl Http1Client
+
     #[test]
     fn http1_client_new_correct() {
         let actual = Http1Client::new(MockTransport::new(b""));
@@ -439,6 +441,8 @@ mod tests {
         let actual = connection.send_request(request);
         assert!(matches!(actual, Err(ConnectionError::Parse(_))));
     }
+
+    // impl Http1Server
 
     #[test]
     fn http1_server_new_correct() {

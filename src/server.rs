@@ -211,6 +211,8 @@ impl Server {
 mod tests {
     use super::*;
 
+    // impl Server
+
     #[test]
     fn server_bind_correct() {
         let actual = Server::bind("127.0.0.1:8080");

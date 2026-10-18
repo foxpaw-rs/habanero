@@ -9,10 +9,10 @@
 : Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Doing
-- [/] Server
-: Create a `Server` struct which wraps incoming requests into the `transport/Tcp` type. This should use a `codec/Http1` to obtain a `common/Request` which gets passed to a `Router` type which will need to be created and handle the business logic, returning a `common/Response`. The `common/Response` gets serialised by the `codec/Http1` ready to be sent back via the `Server`.
 
 ### Done
+- [x] Server
+: Create a `Server` struct which wraps incoming requests into the `transport/Tcp` type. This should use a `codec/Http1` to obtain a `common/Request` which gets passed to a `Router` type which will need to be created and handle the business logic, returning a `common/Response`. The `common/Response` gets serialised by the `codec/Http1` ready to be sent back via the `Server`.
 - [x] Connection
 : Create a `Client` trait, and `Http1Client` which implements it under the `connection` module. Additionally, create a `Server` and a `Http1Server` which implements it under the `connection` module. The connection types wrap a `Transport` type, which will allow for longer lasting and multiplexed connections at a future stage.
 - [x] Codec
