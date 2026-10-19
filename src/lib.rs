@@ -8,6 +8,7 @@
     clippy::pedantic,
 )]
 
+mod client;
 pub mod codec;
 mod common;
 pub mod connection;
@@ -16,6 +17,7 @@ mod router;
 mod server;
 pub mod transport;
 
+pub use client::Client;
 pub use common::{Headers, Method, Request, Response, Scheme, Url, Version};
 pub use router::Router;
 pub use server::{Handler, Server};

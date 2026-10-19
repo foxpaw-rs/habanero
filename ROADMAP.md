@@ -3,12 +3,12 @@
 ## Version 0.1
 
 ### Todo
-- [ ] Client
-: Create a `Client` struct which creates a `transport/Tcp`, uses the `codec/Http1` to send a `common/Request` and subsequently uses the `codec/Http1` to form a `common/Response` from the received data.
 - [ ] Binary
 : Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Doing
+- [/] Client
+: Create a `Client` struct which creates a `transport/Tcp`, uses the `codec/Http1` to send a `common/Request` and subsequently uses the `codec/Http1` to form a `common/Response` from the received data.
 
 ### Done
 - [x] Server

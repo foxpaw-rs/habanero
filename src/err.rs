@@ -23,6 +23,123 @@
 
 use std::error::Error;
 use std::fmt;
+use std::io::{self, ErrorKind};
+
+/// `ClientError`
+///
+/// The enumeration of available client error types. Each variant houses an
+/// inner context to be provided by the user of the error.
+///
+/// # Examples
+/// ```rust
+/// use foxpaw_habanero::err::*;
+///
+/// let error = ClientError::Aborted("Something went wrong".to_string());
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum ClientError {
+    Connection(ConnectionError),
+    Refused(String),
+    TimedOut(String),
+    Aborted(String),
+    Reset(String),
+    Unreachable(String),
+    AddrInUse(String),
+    AddrNotAvailable(String),
+    PermissionDenied(String),
+    Other(String),
+}
+
+impl fmt::Display for ClientError {
+    /// Fmt
+    ///
+    /// Format the `ClientError` for Display.
+    ///
+    /// # Error
+    /// This method will error if the underlying call to write errors.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::err::*;
+    ///
+    /// let error = ClientError::Reset(String::new());
+    /// println!("{error}");
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Connection(inner) => write!(f, "ClientError::Connection => {inner}"),
+            Self::Refused(inner) if !inner.is_empty() => {
+                write!(f, "ClientError::Refused => {inner}")
+            }
+            Self::Refused(_) => write!(f, "ClientError::Refused"),
+            Self::TimedOut(inner) if !inner.is_empty() => {
+                write!(f, "ClientError::TimedOut => {inner}")
+            }
+            Self::TimedOut(_) => write!(f, "ClientError::TimedOut"),
+            Self::Aborted(inner) if !inner.is_empty() => {
+                write!(f, "ClientError::Aborted => {inner}")
+            }
+            Self::Aborted(_) => write!(f, "ClientError::Aborted"),
+            Self::Reset(inner) if !inner.is_empty() => write!(f, "ClientError::Reset => {inner}"),
+            Self::Reset(_) => write!(f, "ClientError::Reset"),
+            Self::Unreachable(inner) if !inner.is_empty() => {
+                write!(f, "ClientError::Unreachable => {inner}")
+            }
+            Self::Unreachable(_) => write!(f, "ClientError::Unreachable"),
+            Self::AddrInUse(inner) if !inner.is_empty() => {
+                write!(f, "ClientError::AddrInUse => {inner}")
+            }
+            Self::AddrInUse(_) => write!(f, "ClientError::AddrInUse"),
+            Self::AddrNotAvailable(inner) if !inner.is_empty() => {
+                write!(f, "ClientError::AddrNotAvailable => {inner}")
+            }
+            Self::AddrNotAvailable(_) => write!(f, "ClientError::AddrNotAvailable"),
+            Self::PermissionDenied(inner) if !inner.is_empty() => {
+                write!(f, "ClientError::PermissionDenied => {inner}")
+            }
+            Self::PermissionDenied(_) => write!(f, "ClientError::PermissionDenied"),
+            Self::Other(inner) if !inner.is_empty() => {
+                write!(f, "ClientError::Other => {inner}")
+            }
+            Self::Other(_) => write!(f, "ClientError::Other"),
+        }
+    }
+}
+
+impl Error for ClientError {}
+
+impl From<ConnectionError> for ClientError {
+    /// From
+    ///
+    /// Convert from a [`ConnectionError`] into a `ClientError` by wrapping
+    /// it in the `ClientError::Connection` variant.
+    fn from(e: ConnectionError) -> Self {
+        Self::Connection(e)
+    }
+}
+
+impl From<io::Error> for ClientError {
+    /// From
+    ///
+    /// Convert from an `io::Error` into a `ClientError` by wrapping
+    /// it in the relevant variant.
+    fn from(e: io::Error) -> Self {
+        match e.kind() {
+            ErrorKind::ConnectionRefused => Self::Refused(e.to_string()),
+            ErrorKind::TimedOut => Self::TimedOut(e.to_string()),
+            ErrorKind::ConnectionAborted => Self::Aborted(e.to_string()),
+            ErrorKind::ConnectionReset => Self::Reset(e.to_string()),
+            ErrorKind::HostUnreachable | ErrorKind::NetworkUnreachable => {
+                Self::Unreachable(e.to_string())
+            }
+            ErrorKind::AddrInUse => Self::AddrInUse(e.to_string()),
+            ErrorKind::AddrNotAvailable => Self::AddrNotAvailable(e.to_string()),
+            ErrorKind::PermissionDenied => Self::PermissionDenied(e.to_string()),
+            _ => Self::Other(e.to_string()),
+        }
+    }
+}
 
 /// `ConnectionError`
 ///
@@ -68,8 +185,8 @@ impl fmt::Display for ConnectionError {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Parse(inner) => write!(f, "ConnectionError::{inner}"),
-            Self::Serialize(inner) => write!(f, "ConnectionError::{inner}"),
+            Self::Parse(inner) => write!(f, "ConnectionError::Parse => {inner}"),
+            Self::Serialize(inner) => write!(f, "ConnectionError::Serialize => {inner}"),
         }
     }
 }
@@ -413,15 +530,82 @@ impl fmt::Display for ServerError {
 
 impl Error for ServerError {}
 
+impl From<io::Error> for ServerError {
+    /// From
+    ///
+    /// Convert from an `io::Error` into a `ServerError` by wrapping
+    /// it in the relevant variant.
+    fn from(e: io::Error) -> Self {
+        match e.kind() {
+            ErrorKind::InvalidInput => ServerError::Invalid(e.to_string()),
+            ErrorKind::PermissionDenied => ServerError::Bind(e.to_string()),
+            ErrorKind::AddrInUse => ServerError::AddrInUse(e.to_string()),
+            _ => ServerError::Other(e.to_string()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // impl Display for ClientError
+
+    #[test]
+    fn client_error_fmt_correct() {
+        let expected = "ClientError::AddrInUse => Custom context".to_string();
+        let actual = ClientError::AddrInUse("Custom context".to_string()).to_string();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn client_error_fmt_empty() {
+        let expected = "ClientError::AddrInUse".to_string();
+        let actual = ClientError::AddrInUse(String::new()).to_string();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn client_error_fmt_nested() {
+        let expected = "ClientError::Connection => \
+            ConnectionError::Parse => \
+            ParseError::Empty => \
+            Custom context"
+            .to_string();
+        let actual = ClientError::Connection(ConnectionError::Parse(ParseError::Empty(
+            "Custom context".to_string(),
+        )))
+        .to_string();
+        assert_eq!(actual, expected);
+    }
+
+    // impl From<ConnectionError> for ClientError
+
+    #[test]
+    fn client_error_from_connection_error() {
+        let actual = ConnectionError::Parse(ParseError::Empty(String::new()));
+        let expected =
+            ClientError::Connection(ConnectionError::Parse(ParseError::Empty(String::new())));
+        assert_eq!(ClientError::from(actual), expected)
+    }
+
+    // impl From<io::Error> for ClientError
+
+    #[test]
+    fn client_error_from_io_error() {
+        let actual = Into::<io::Error>::into(ErrorKind::AddrInUse);
+        let expected = ClientError::AddrInUse("address in use".to_string());
+        assert_eq!(ClientError::from(actual), expected)
+    }
 
     // impl Display for ConnectionError
 
     #[test]
     fn connection_error_fmt_correct() {
-        let expected = "ConnectionError::ParseError::Invalid => Custom context".to_string();
+        let expected = "ConnectionError::Parse => \
+            ParseError::Invalid => \
+            Custom context"
+            .to_string();
         let actual =
             ConnectionError::Parse(ParseError::Invalid("Custom context".to_string())).to_string();
         assert_eq!(actual, expected);
@@ -429,12 +613,15 @@ mod tests {
 
     #[test]
     fn connection_error_fmt_empty() {
-        let expected = "ConnectionError::ParseError::Invalid".to_string();
+        let expected = "ConnectionError::Parse => \
+            ParseError::Invalid"
+            .to_string();
         let actual = ConnectionError::Parse(ParseError::Invalid(String::new())).to_string();
         assert_eq!(actual, expected);
     }
 
     // impl From<ParseError> for ConnectionError
+
     #[test]
     fn connection_error_from_parse_error() {
         let actual = ParseError::Empty("".to_string());
@@ -443,6 +630,7 @@ mod tests {
     }
 
     // impl From<SerializeError> for ConnectionError
+
     #[test]
     fn connection_error_from_serialize_error() {
         let actual = SerializeError::Io("".to_string());
@@ -505,5 +693,14 @@ mod tests {
         let expected = "ServerError::Bind".to_string();
         let actual = ServerError::Bind(String::new()).to_string();
         assert_eq!(actual, expected);
+    }
+
+    // impl From<io::Error> for ServerError
+
+    #[test]
+    fn server_error_from_io_error() {
+        let actual = Into::<io::Error>::into(ErrorKind::AddrInUse);
+        let expected = ServerError::AddrInUse("address in use".to_string());
+        assert_eq!(ServerError::from(actual), expected)
     }
 }

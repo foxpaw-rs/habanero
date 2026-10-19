@@ -33,7 +33,6 @@ use crate::common::{Request, Response, Version};
 use crate::connection::{Http1Server, Server as ServerConnection};
 use crate::err::{HttpError, ServerError};
 use crate::transport::Tcp;
-use std::io;
 use std::net::{TcpListener, ToSocketAddrs};
 use std::sync::Arc;
 use std::thread;
@@ -137,12 +136,7 @@ impl Server {
     /// }
     /// ```
     pub fn bind(addr: impl ToSocketAddrs) -> Result<Self, ServerError> {
-        let listener = TcpListener::bind(addr).map_err(|e| match e.kind() {
-            io::ErrorKind::InvalidInput => ServerError::Invalid(e.to_string()),
-            io::ErrorKind::PermissionDenied => ServerError::Bind(e.to_string()),
-            io::ErrorKind::AddrInUse => ServerError::AddrInUse(e.to_string()),
-            _ => ServerError::Other(e.to_string()),
-        })?;
+        let listener = TcpListener::bind(addr)?;
         Ok(Self { listener })
     }
 
