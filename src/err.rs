@@ -119,6 +119,16 @@ impl From<ConnectionError> for ClientError {
     }
 }
 
+impl From<ParseError> for ClientError {
+    /// From
+    ///
+    /// Convert from a [`ParseError`] into a `ClientError` by wrapping
+    /// it in the `ClientError::Parse` variant.
+    fn from(e: ParseError) -> Self {
+        Self::Connection(e.into())
+    }
+}
+
 impl From<io::Error> for ClientError {
     /// From
     ///

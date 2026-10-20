@@ -70,6 +70,28 @@ impl Router {
         Self { routes: Vec::new() }
     }
 
+    /// With Connect
+    ///
+    /// Add a new Connect route to the router. Note that this consumes and returns
+    /// a reference to self, supporting method chaining.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// let router = Router::new()
+    ///     .with_connect("/", |req| {
+    ///         Ok(Response::new(Version::Http11, 200))
+    /// });
+    /// ```
+    #[must_use]
+    pub fn with_connect<F>(self, path: impl Into<String>, handler: F) -> Self
+    where
+        F: Fn(Request) -> Result<Response, HttpError> + Send + Sync + 'static,
+    {
+        self.with_route(Method::Connect, path, handler)
+    }
+
     /// With Delete
     ///
     /// Add a new Delete route to the router. Note that this consumes and returns
@@ -112,6 +134,50 @@ impl Router {
         F: Fn(Request) -> Result<Response, HttpError> + Send + Sync + 'static,
     {
         self.with_route(Method::Get, path, handler)
+    }
+
+    /// With Head
+    ///
+    /// Add a new Head route to the router. Note that this consumes and returns
+    /// a reference to self, supporting method chaining.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// let router = Router::new()
+    ///     .with_head("/", |req| {
+    ///         Ok(Response::new(Version::Http11, 200))
+    /// });
+    /// ```
+    #[must_use]
+    pub fn with_head<F>(self, path: impl Into<String>, handler: F) -> Self
+    where
+        F: Fn(Request) -> Result<Response, HttpError> + Send + Sync + 'static,
+    {
+        self.with_route(Method::Head, path, handler)
+    }
+
+    /// With Options
+    ///
+    /// Add a new Options route to the router. Note that this consumes and returns
+    /// a reference to self, supporting method chaining.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// let router = Router::new()
+    ///     .with_options("/", |req| {
+    ///         Ok(Response::new(Version::Http11, 200))
+    /// });
+    /// ```
+    #[must_use]
+    pub fn with_options<F>(self, path: impl Into<String>, handler: F) -> Self
+    where
+        F: Fn(Request) -> Result<Response, HttpError> + Send + Sync + 'static,
+    {
+        self.with_route(Method::Options, path, handler)
     }
 
     /// With Patch
@@ -180,6 +246,28 @@ impl Router {
         self.with_route(Method::Put, path, handler)
     }
 
+    /// With Query
+    ///
+    /// Add a new Query route to the router. Note that this consumes and returns
+    /// a reference to self, supporting method chaining.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// let router = Router::new()
+    ///     .with_query("/", |req| {
+    ///         Ok(Response::new(Version::Http11, 200))
+    /// });
+    /// ```
+    #[must_use]
+    pub fn with_query<F>(self, path: impl Into<String>, handler: F) -> Self
+    where
+        F: Fn(Request) -> Result<Response, HttpError> + Send + Sync + 'static,
+    {
+        self.with_route(Method::Query, path, handler)
+    }
+
     /// With Route
     ///
     /// Add a new route to the router. Note that this consumes and returns a
@@ -205,6 +293,28 @@ impl Router {
             handler: Box::new(handler),
         });
         self
+    }
+
+    /// With Trace
+    ///
+    /// Add a new Trace route to the router. Note that this consumes and returns
+    /// a reference to self, supporting method chaining.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// let router = Router::new()
+    ///     .with_trace("/", |req| {
+    ///         Ok(Response::new(Version::Http11, 200))
+    /// });
+    /// ```
+    #[must_use]
+    pub fn with_trace<F>(self, path: impl Into<String>, handler: F) -> Self
+    where
+        F: Fn(Request) -> Result<Response, HttpError> + Send + Sync + 'static,
+    {
+        self.with_route(Method::Trace, path, handler)
     }
 }
 
@@ -252,6 +362,13 @@ mod tests {
     }
 
     #[test]
+    fn router_with_connect_correct() {
+        let actual = Router::new().with_connect("/", |_| Ok(Response::new(Version::Http11, 200)));
+        assert_eq!(actual.routes.len(), 1);
+        assert_eq!(actual.routes[0].method, Method::Connect);
+    }
+
+    #[test]
     fn router_with_delete_correct() {
         let actual = Router::new().with_delete("/", |_| Ok(Response::new(Version::Http11, 200)));
         assert_eq!(actual.routes.len(), 1);
@@ -263,6 +380,20 @@ mod tests {
         let actual = Router::new().with_get("/", |_| Ok(Response::new(Version::Http11, 200)));
         assert_eq!(actual.routes.len(), 1);
         assert_eq!(actual.routes[0].method, Method::Get);
+    }
+
+    #[test]
+    fn router_with_head_correct() {
+        let actual = Router::new().with_head("/", |_| Ok(Response::new(Version::Http11, 200)));
+        assert_eq!(actual.routes.len(), 1);
+        assert_eq!(actual.routes[0].method, Method::Head);
+    }
+
+    #[test]
+    fn router_with_options_correct() {
+        let actual = Router::new().with_options("/", |_| Ok(Response::new(Version::Http11, 200)));
+        assert_eq!(actual.routes.len(), 1);
+        assert_eq!(actual.routes[0].method, Method::Options);
     }
 
     #[test]
@@ -287,10 +418,24 @@ mod tests {
     }
 
     #[test]
+    fn router_with_query_correct() {
+        let actual = Router::new().with_query("/", |_| Ok(Response::new(Version::Http11, 200)));
+        assert_eq!(actual.routes.len(), 1);
+        assert_eq!(actual.routes[0].method, Method::Query);
+    }
+
+    #[test]
     fn router_with_route_correct() {
         let actual = Router::new().with_route(Method::Get, "/", |_| {
             Ok(Response::new(Version::Http11, 200))
         });
         assert_eq!(actual.routes.len(), 1);
+    }
+
+    #[test]
+    fn router_with_trace_correct() {
+        let actual = Router::new().with_trace("/", |_| Ok(Response::new(Version::Http11, 200)));
+        assert_eq!(actual.routes.len(), 1);
+        assert_eq!(actual.routes[0].method, Method::Trace);
     }
 }
