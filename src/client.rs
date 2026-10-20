@@ -266,8 +266,7 @@ impl Client {
     /// }
     /// ```
     pub fn patch(&self, url: &Url, body: &[u8]) -> Result<Response, ClientError> {
-        let req = Request::new(Method::Patch, &url.path, Version::Http11)
-            .with_body(body);
+        let req = Request::new(Method::Patch, &url.path, Version::Http11).with_body(body);
         self.dispatch(url, req)
     }
 
@@ -290,8 +289,7 @@ impl Client {
     /// }
     /// ```
     pub fn post(&self, url: &Url, body: &[u8]) -> Result<Response, ClientError> {
-        let req = Request::new(Method::Post, &url.path, Version::Http11)
-            .with_body(body);
+        let req = Request::new(Method::Post, &url.path, Version::Http11).with_body(body);
         self.dispatch(url, req)
     }
 
@@ -314,8 +312,7 @@ impl Client {
     /// }
     /// ```
     pub fn put(&self, url: &Url, body: &[u8]) -> Result<Response, ClientError> {
-        let req = Request::new(Method::Put, &url.path, Version::Http11)
-            .with_body(body);
+        let req = Request::new(Method::Put, &url.path, Version::Http11).with_body(body);
         self.dispatch(url, req)
     }
 
@@ -338,8 +335,7 @@ impl Client {
     /// }
     /// ```
     pub fn query(&self, url: &Url, body: &[u8]) -> Result<Response, ClientError> {
-        let req = Request::new(Method::Query, &url.path, Version::Http11)
-            .with_body(body);
+        let req = Request::new(Method::Query, &url.path, Version::Http11).with_body(body);
         self.dispatch(url, req)
     }
 

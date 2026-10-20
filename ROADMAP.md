@@ -7,10 +7,10 @@
 : Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Doing
-- [/] Client
-: Create a `Client` struct which creates a `transport/Tcp`, uses the `codec/Http1` to send a `common/Request` and subsequently uses the `codec/Http1` to form a `common/Response` from the received data.
 
 ### Done
+- [x] Client
+: Create a `Client` struct which creates a `transport/Tcp`, uses the `codec/Http1` to send a `common/Request` and subsequently uses the `codec/Http1` to form a `common/Response` from the received data.
 - [x] Server
 : Create a `Server` struct which wraps incoming requests into the `transport/Tcp` type. This should use a `codec/Http1` to obtain a `common/Request` which gets passed to a `Router` type which will need to be created and handle the business logic, returning a `common/Response`. The `common/Response` gets serialised by the `codec/Http1` ready to be sent back via the `Server`.
 - [x] Connection
