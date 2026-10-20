@@ -3,10 +3,10 @@
 ## Version 0.1
 
 ### Todo
-- [ ] Binary
-: Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Doing
+- [/] Binary
+: Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Done
 - [x] Client
