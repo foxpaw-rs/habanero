@@ -5,10 +5,10 @@
 ### Todo
 
 ### Doing
-- [/] Binary
-: Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 
 ### Done
+- [x] Binary
+: Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
 - [x] Client
 : Create a `Client` struct which creates a `transport/Tcp`, uses the `codec/Http1` to send a `common/Request` and subsequently uses the `codec/Http1` to form a `common/Response` from the received data.
 - [x] Server
