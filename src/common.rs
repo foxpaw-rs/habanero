@@ -355,6 +355,33 @@ impl Request {
         self.headers = self.headers.insert(key, value);
         self
     }
+
+    /// With Json
+    ///
+    /// Insert a JSON body into the `Response`. Automatically sets the
+    /// Content-Type and Content-Length headers based on the provided body.
+    ///
+    /// Note that this method consumes and returns the altered `Response`
+    /// instance and is deigned to be chained, invalidating the original
+    /// object.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use foxpaw_habanero::*;
+    ///
+    /// let response = Response::new(Version::Http11, 200)
+    ///     .with_json("{value: 42}");
+    /// ```
+    #[must_use]
+    pub fn with_json(mut self, body: impl Into<Vec<u8>>) -> Self {
+        let b = body.into();
+        self.headers = self
+            .headers
+            .insert("Content-Type", "application/json")
+            .insert("Content-Length", b.len().to_string());
+        self.body = b;
+        self
+    }
 }
 
 /// `Response`
@@ -907,6 +934,17 @@ mod tests {
         let actual = Request::new(Method::Get, "/", Version::Http11)
             .with_header("Content-Type", "application/json");
         assert_eq!(actual.headers, expected);
+    }
+
+    #[test]
+    fn request_json_correct() {
+        let actual = Request::new(Method::Get, "/", Version::Http11).with_json("{value: 42}");
+        assert_eq!(
+            actual.headers.find("Content-Type"),
+            Some("application/json")
+        );
+        assert_eq!(actual.headers.find("Content-Length"), Some("11"));
+        assert_eq!(actual.body, "{value: 42}".as_bytes());
     }
 
     // impl Response
