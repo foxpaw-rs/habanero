@@ -1,7 +1,4 @@
-//! Habanero
-//!
-//! Todo: Library documentation
-
+#![doc = include_str!("../README.md")]
 #![deny(
     clippy::all,
     //clippy::cargo, Todo: Cargo.toml

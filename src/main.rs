@@ -20,7 +20,7 @@ fn main() -> Result<(), ServerError> {
 ///
 /// Will obtain the html page for the specified uri. The application looks for
 /// the file inside the _`/public`_ directory, appending the html extension.
-/// If the uri request is for a folder, the index.html page is returned.
+/// If the uri request is for a directory, the index.html page is returned.
 /// Additionally, if the index is manually entered into the request, None will
 /// be returned. A small sample of how this works, in order of priority:
 /// * / => public/index.html
@@ -33,7 +33,7 @@ fn get_page(uri: impl AsRef<str>) -> Option<Vec<u8>> {
     }
 
     if page.ends_with(".css") || page.ends_with(".js") {
-    	return fs::read(format!("public{}", page)).ok()
+        return fs::read(format!("public{}", page)).ok();
     }
 
     fs::read(format!("public{}.html", page))

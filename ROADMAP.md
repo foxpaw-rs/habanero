@@ -2,10 +2,6 @@
 
 ## Version 0.1
 
-### Todo
-
-### Doing
-
 ### Done
 - [x] Binary
 : Create a binary server application which serves html pages in the _`public/`_ directory and it's children.

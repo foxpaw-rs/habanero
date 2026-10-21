@@ -39,6 +39,10 @@
 use crate::err::ParseError;
 pub use std::str::FromStr;
 
+#[doc(hidden)]
+#[allow(unused_imports)]
+use crate::{client::Client, server::Server};
+
 /// `Headers`
 ///
 /// A map of HTTP headers, used by [`Request`] and [`Response`]. Headers are

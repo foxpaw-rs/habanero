@@ -154,7 +154,7 @@ impl Client {
     /// # Errors
     /// This will error if the connection to the remote host fails, or if the
     /// [`Request`] serialization or [`Response`] parsing fails by the
-    /// [`Connection`].
+    /// [`Http1Client`].
     ///
     /// # Examples
     /// ```rust, no_run

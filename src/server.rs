@@ -37,6 +37,10 @@ use std::net::{TcpListener, ToSocketAddrs};
 use std::sync::Arc;
 use std::thread;
 
+#[doc(hidden)]
+#[allow(unused_imports)]
+use crate::router::Router;
+
 /// `Handler`
 ///
 /// A handler handles a [`Request`], performs some sort of logic and generates

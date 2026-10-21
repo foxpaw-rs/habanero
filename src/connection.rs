@@ -20,7 +20,7 @@
 //! * [`Http1Server`].
 //!
 //! # Examples
-//! ## Using an [`HTTP1Client`]
+//! ## Using an [`Http1Client`]
 //! ```rust, no_run
 //! use foxpaw_habanero::*;
 //! use foxpaw_habanero::connection::{Client, Http1Client};
@@ -37,7 +37,7 @@
 //!     Ok(response)
 //! }
 //! ```
-//! ## Using an [`HTTP1Server`]
+//! ## Using an [`Http1Server`]
 //! ```rust, no_run
 //! use foxpaw_habanero::*;
 //! use foxpaw_habanero::connection::{Server, Http1Server};

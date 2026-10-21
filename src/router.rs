@@ -39,7 +39,7 @@ struct Route {
 ///
 /// The `Router` it utilised as a more complex handler than a simple callback
 /// method. The `Router` currently only supports defining a [`Method`] and
-/// [`Path`], however, in future will support more complex features like route
+/// path, however, in future will support more complex features like route
 /// bindings, dynamic paths, groups and middleware.
 ///
 /// # Examples
