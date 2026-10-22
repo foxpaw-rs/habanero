@@ -6,7 +6,7 @@ Habanero is a rust HTTP crate which exposes both a client and server model for s
 [![GitHub License](https://img.shields.io/github/license/foxpaw-rs/habanero)](LICENSE.md)
 
 ## Features
-This crate supports being used as a library to further develop your own application layer on top of, or as a standalone binary to serve static web pages.
+This crate supports being used as a crate to further develop your own application layer on top of, or as a standalone application to serve static web pages.
 
 The architecture utilises clean threads, removing any dependency on an async runtime.
 
@@ -20,7 +20,7 @@ Add this crate as a dependency to your `Cargo.toml`:
 foxpaw_habanero = "0.1.0"
 ```
 
-### Binary
+### Application
 To compile the repository, please first install the [rust toolchain](https://rust-lang.org/tools/install/). Clone or download the repository, navigate to it in a terminal and run `cargo run` to spin up the server.
 
 The server will now be able to serve web pages from the _`public/`_ directory, relative to your current working directory when the application is run. See the [documentation](#documentation) section for more details.
@@ -64,5 +64,5 @@ The full API guide is available on [docs.rs](https://docs.rs), or alternatively 
 
 For a comprehensive overview of the features per version and development over time, see the project [roadmap](ROADMAP.md).
 
-## Licence
-Licensed under the MIT Licence. See the [license](LICENSE.md) for further details.
+## License
+Licensed under the MIT License. See the [license](LICENSE.md) for further details.

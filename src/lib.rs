@@ -19,8 +19,8 @@
 //! Majority of the imports can be brought in to scope with an import of the
 //! prelude module. Note that this will not bring into scope any of the error
 //! types supplied by the crate. These can all be found in the `err` module
-//!
 //! ```rust
+//!
 //! use foxpaw_habanero::prelude::*;
 //! use foxpaw_habanero::err::*;
 //! ```
