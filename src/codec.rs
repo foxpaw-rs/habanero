@@ -1,5 +1,3 @@
-//! Codec
-//!
 //! This module houses the codec types that parse into, and serialize from the
 //! [`Request`] and [`Response`] types.
 //!
@@ -12,7 +10,7 @@
 //! # Examples
 //! ## Parse HTTP1.x
 //! ```rust
-//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::prelude::*;
 //! use foxpaw_habanero::codec::Http1;
 //! use foxpaw_habanero::err::ParseError;
 //!
@@ -28,7 +26,7 @@
 //!
 //! ## Serialize HTTP1.x
 //! ```rust
-//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::prelude::*;
 //! use foxpaw_habanero::codec::Http1;
 //!
 //! fn serialize_http1() -> Result<(), String> {
@@ -49,8 +47,6 @@ use std::io::{BufRead, Write};
 pub struct Http1;
 
 impl Http1 {
-    /// Parse Body
-    ///
     /// Parse the body section of the reader. This method will use relevant
     /// header values in assisting in parsing the HTTP body.
     fn parse_body(reader: &mut impl BufRead, headers: &Headers) -> Result<Vec<u8>, ParseError> {
@@ -69,8 +65,6 @@ impl Http1 {
         Ok(body)
     }
 
-    /// Parse Headers
-    ///
     /// Parse the body section of the reader.
     fn parse_headers(reader: &mut impl BufRead) -> Result<Headers, ParseError> {
         let mut headers = Headers::new();
@@ -96,8 +90,6 @@ impl Http1 {
         Ok(headers)
     }
 
-    /// Parse Request
-    ///
     /// Parse a [`Request`] out of a read buffer. The read buffer is expected
     /// to contain an HTTP/1.0 or HTTP/1.1 formatted request.
     ///
@@ -158,8 +150,6 @@ impl Http1 {
         Ok(request)
     }
 
-    /// Parse Response
-    ///
     /// Parse a [`Response`] out of a read buffer. The read buffer is expected
     /// to contain an HTTP/1.0 or HTTP/1.1 formatted response.
     ///
@@ -218,8 +208,6 @@ impl Http1 {
         Ok(response)
     }
 
-    /// Serialize Body
-    ///
     /// Serialize the body of either a [`Request`] or [`Response`].
     fn serialize_body(writer: &mut impl Write, body: &[u8]) -> Result<(), SerializeError> {
         if !body.is_empty() {
@@ -233,8 +221,6 @@ impl Http1 {
         Ok(())
     }
 
-    /// Serialize Headers
-    ///
     /// Serialize the [`Headers`] of either a [`Request`] or [`Response`]. Note
     /// that the body is requried to specify the Content-Length header if it
     /// was not set in the initial [`Headers`].
@@ -258,8 +244,6 @@ impl Http1 {
         write!(writer, "\r\n").map_err(|e| SerializeError::Io(e.to_string()))
     }
 
-    /// Serialize Request
-    ///
     /// Serialize a [`Request`] into the provided writer, ready for
     /// transmission.
     ///
@@ -269,7 +253,7 @@ impl Http1 {
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::codec::Http1;
     /// use foxpaw_habanero::err::SerializeError;
     ///
@@ -310,8 +294,6 @@ impl Http1 {
         Ok(())
     }
 
-    /// Serialize Response
-    ///
     /// Serialize a [`Response`] into the provided writer, ready for
     /// transmission.
     ///
@@ -321,7 +303,7 @@ impl Http1 {
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::codec::Http1;
     /// use foxpaw_habanero::err::SerializeError;
     ///
@@ -402,8 +384,6 @@ impl Http1 {
         Ok(())
     }
 
-    /// Serialize Version
-    ///
     /// Serialize the [`Version`] of either a [`Request`] or [`Response`].
     fn serialize_version(writer: &mut impl Write, version: Version) -> Result<(), SerializeError> {
         let version = match version {

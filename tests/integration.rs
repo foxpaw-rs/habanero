@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use foxpaw_habanero::*;
+    use foxpaw_habanero::prelude::*;
     use std::thread;
     use std::time::Duration;
 

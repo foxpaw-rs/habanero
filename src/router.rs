@@ -1,5 +1,3 @@
-//! Router
-//!
 //! This module houses the [`Router`] type, designed to implement the
 //! [`Handler`] trait.
 //!
@@ -10,7 +8,7 @@
 //!
 //! # Examples
 //! ```rust
-//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::prelude::*;
 //!
 //! let router = Router::new()
 //!     .with_get("/", |req| Ok(Response::new(Version::Http11, 200)));
@@ -20,13 +18,9 @@ use crate::common::{Method, Request, Response};
 use crate::err::HttpError;
 use crate::server::Handler;
 
-/// `RouteHandler`
-///
 /// The handler type alias for the callback used by the [`Route`].
 type RouteHandler = Box<dyn Fn(Request) -> Result<Response, HttpError> + Send + Sync>;
 
-/// `Route`
-///
 /// A single route housed by the router, defining the supporting [`Method`],
 /// path and callback handler.
 struct Route {
@@ -35,8 +29,6 @@ struct Route {
     handler: RouteHandler,
 }
 
-/// `Router`
-///
 /// The `Router` it utilised as a more complex handler than a simple callback
 /// method. The `Router` currently only supports defining a [`Method`] and
 /// path, however, in future will support more complex features like route
@@ -44,7 +36,7 @@ struct Route {
 ///
 /// # Examples
 /// ```rust
-/// use foxpaw_habanero::*;
+/// use foxpaw_habanero::prelude::*;
 ///
 /// let router = Router::new()
 ///     .with_get("/", |req| Ok(Response::new(Version::Http11, 200)));
@@ -55,13 +47,11 @@ pub struct Router {
 }
 
 impl Router {
-    /// New
-    ///
     /// Create a new empty [`Router`] instance.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::Router;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new();
     /// ```
@@ -70,14 +60,12 @@ impl Router {
         Self { routes: Vec::new() }
     }
 
-    /// With Connect
-    ///
     /// Add a new Connect route to the router. Note that this consumes and returns
     /// a reference to self, supporting method chaining.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new()
     ///     .with_connect("/", |req| {
@@ -92,14 +80,12 @@ impl Router {
         self.with_route(Method::Connect, path, handler)
     }
 
-    /// With Delete
-    ///
     /// Add a new Delete route to the router. Note that this consumes and returns
     /// a reference to self, supporting method chaining.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new()
     ///     .with_delete("/", |req| {
@@ -114,14 +100,12 @@ impl Router {
         self.with_route(Method::Delete, path, handler)
     }
 
-    /// With Get
-    ///
     /// Add a new Get route to the router. Note that this consumes and returns
     /// a reference to self, supporting method chaining.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new()
     ///     .with_get("/", |req| {
@@ -136,14 +120,12 @@ impl Router {
         self.with_route(Method::Get, path, handler)
     }
 
-    /// With Head
-    ///
     /// Add a new Head route to the router. Note that this consumes and returns
     /// a reference to self, supporting method chaining.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new()
     ///     .with_head("/", |req| {
@@ -158,14 +140,12 @@ impl Router {
         self.with_route(Method::Head, path, handler)
     }
 
-    /// With Options
-    ///
     /// Add a new Options route to the router. Note that this consumes and returns
     /// a reference to self, supporting method chaining.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new()
     ///     .with_options("/", |req| {
@@ -180,14 +160,12 @@ impl Router {
         self.with_route(Method::Options, path, handler)
     }
 
-    /// With Patch
-    ///
     /// Add a new Patch route to the router. Note that this consumes and returns
     /// a reference to self, supporting method chaining.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new()
     ///     .with_patch("/", |req| {
@@ -202,14 +180,12 @@ impl Router {
         self.with_route(Method::Patch, path, handler)
     }
 
-    /// With Post
-    ///
     /// Add a new Post route to the router. Note that this consumes and returns
     /// a reference to self, supporting method chaining.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new()
     ///     .with_post("/", |req| {
@@ -224,14 +200,12 @@ impl Router {
         self.with_route(Method::Post, path, handler)
     }
 
-    /// With Put
-    ///
     /// Add a new Put route to the router. Note that this consumes and returns
     /// a reference to self, supporting method chaining.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new()
     ///     .with_put("/", |req| {
@@ -246,14 +220,12 @@ impl Router {
         self.with_route(Method::Put, path, handler)
     }
 
-    /// With Query
-    ///
     /// Add a new Query route to the router. Note that this consumes and returns
     /// a reference to self, supporting method chaining.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new()
     ///     .with_query("/", |req| {
@@ -268,14 +240,12 @@ impl Router {
         self.with_route(Method::Query, path, handler)
     }
 
-    /// With Route
-    ///
     /// Add a new route to the router. Note that this consumes and returns a
     /// reference to self, supporting method chaining.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new()
     ///     .with_route(Method::Options, "/", |req| {
@@ -295,14 +265,12 @@ impl Router {
         self
     }
 
-    /// With Trace
-    ///
     /// Add a new Trace route to the router. Note that this consumes and returns
     /// a reference to self, supporting method chaining.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let router = Router::new()
     ///     .with_trace("/", |req| {
@@ -319,8 +287,6 @@ impl Router {
 }
 
 impl Handler for Router {
-    /// Handle
-    ///
     /// Handle an incoming [`Request`] and return a [`Response`].
     ///
     /// # Errors
@@ -328,7 +294,7 @@ impl Handler for Router {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ServerError;
     ///
     /// fn start_server() -> Result<(), ServerError> {

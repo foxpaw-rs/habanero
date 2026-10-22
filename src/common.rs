@@ -1,5 +1,3 @@
-//! Common
-//!
 //! This module provides the common data types. Essentially housing the
 //! [`Request`] and [`Response`] and associated sub-types used in the crate.
 //!
@@ -19,7 +17,7 @@
 //! # Examples
 //! ## Creating a [`Request`]
 //! ```rust
-//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::prelude::*;
 //!
 //! let request = Request::new(Method::Get, "/", Version::Http11)
 //!     .with_header("my-value", "My Header")
@@ -28,7 +26,7 @@
 //!
 //! ## Creating a [`Response`]
 //! ```rust
-//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::prelude::*;
 //!
 //! let response = Response::new(Version::Http11, 200)
 //!     .with_html("<html></html>")
@@ -43,8 +41,6 @@ pub use std::str::FromStr;
 #[allow(unused_imports)]
 use crate::{client::Client, server::Server};
 
-/// `Headers`
-///
 /// A map of HTTP headers, used by [`Request`] and [`Response`]. Headers are
 /// retrieved case-insensitively and stored as provided.
 ///
@@ -54,7 +50,7 @@ use crate::{client::Client, server::Server};
 ///
 /// # Examples
 /// ```rust
-/// use foxpaw_habanero::Headers;
+/// use foxpaw_habanero::prelude::*;
 ///
 /// let headers = Headers::new()
 ///     .insert("Content-Type", "text/html")
@@ -78,15 +74,13 @@ pub struct Headers {
 }
 
 impl Headers {
-    /// New
-    ///
     /// Create a new empty `Headers` instance. Note that the [`Request`] and
     /// [`Response`] structs will create their own `Headers` and it is unusual
     /// that as a consumer of the crate you will need to create one.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::Headers;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let headers = Headers::new();
     /// ```
@@ -95,15 +89,13 @@ impl Headers {
         Self { inner: Vec::new() }
     }
 
-    /// Find
-    ///
     /// Find the first occurrence of a header within the `Headers`. The
     /// first occurrence is determined by order of insertion. Find is a
     /// case-insensitive operation.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::Headers;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let headers = Headers::new()
     ///     .insert("my-value", "a")
@@ -118,15 +110,13 @@ impl Headers {
             .map(|(_, v)| v.as_str())
     }
 
-    /// Get
-    ///
     /// Get all occurrences of a header within the `Headers`. If multiple
     /// values exist for the specified key, all will be returned. Get is a
     /// case-insensitive operation.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::Headers;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let headers = Headers::new()
     ///     .insert("my-value", "a")
@@ -142,8 +132,6 @@ impl Headers {
             .collect()
     }
 
-    /// Insert
-    ///
     /// Insert a key, value pair into the `Headers`. This operation is
     /// non-destructive and will not overwrite a previously inserted value for
     /// the provided key. The inserted key will be entered in exactly as
@@ -155,7 +143,7 @@ impl Headers {
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::Headers;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let headers = Headers::new()
     ///     .insert("my-value", "a")
@@ -167,13 +155,11 @@ impl Headers {
         self
     }
 
-    /// Iter
-    ///
     /// Obtain an iterator for the `Headers`.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::Headers;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let headers = Headers::new();
     /// headers.iter().for_each(|header| {
@@ -185,8 +171,6 @@ impl Headers {
     }
 }
 
-/// `Method`
-///
 /// Enumerated HTTP Methods supported by the crate.
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -206,8 +190,6 @@ pub enum Method {
 impl FromStr for Method {
     type Err = ParseError;
 
-    /// From Str
-    ///
     /// Try to convert from a `str` into a [`Method`]. Can be used explicitly or
     /// implicitly from `str::parse`. Note that while HTTP methods are expected
     /// to be uppercase, this method is case-insensitive.
@@ -218,7 +200,7 @@ impl FromStr for Method {
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::Method;
+    /// use foxpaw_habanero::prelude::*;
     /// use std::str::FromStr;
     ///
     /// let expected = Ok(Method::Get);
@@ -252,14 +234,12 @@ impl FromStr for Method {
     }
 }
 
-/// `Request`
-///
 /// An HTTP request, used both when receiving a HTTP request via a [`Server`]
 /// or prepared to be sent via a [`Client`].
 ///
 /// # Examples
 /// ```rust
-/// use foxpaw_habanero::*;
+/// use foxpaw_habanero::prelude::*;
 ///
 /// // Fluently create a request
 /// let mut request = Request::new(Method::Get, "/", Version::Http11)
@@ -289,14 +269,12 @@ pub struct Request {
 }
 
 impl Request {
-    /// New
-    ///
     /// Create a new empty `Request` instance with the provided HTTP method,
     /// URI and HTTP version.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let request = Request::new(
     ///     Method::Get,
@@ -315,14 +293,12 @@ impl Request {
         }
     }
 
-    /// With Body
-    ///
     /// Fluently sets a body on this `Request`, consuming the original object
     /// and returning the updated instance.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let request = Request::new(
     ///         Method::Get,
@@ -338,14 +314,12 @@ impl Request {
         self.with_header("Content-Length", len.to_string())
     }
 
-    /// With Header
-    ///
     /// Fluently sets a header on this `Request`, consuming the original object
     /// and returning the updated instance.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let request = Request::new(
     ///         Method::Get,
@@ -360,8 +334,6 @@ impl Request {
         self
     }
 
-    /// With Json
-    ///
     /// Insert a JSON body into the `Response`. Automatically sets the
     /// Content-Type and Content-Length headers based on the provided body.
     ///
@@ -371,7 +343,7 @@ impl Request {
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let response = Response::new(Version::Http11, 200)
     ///     .with_json("{value: 42}");
@@ -388,14 +360,12 @@ impl Request {
     }
 }
 
-/// `Response`
-///
 /// An HTTP response, used both when prepared to be sent via a [`Server`] or
 /// receiving a HTTP response via a [`Client`].
 ///
 /// # Examples
 /// ```rust
-/// use foxpaw_habanero::*;
+/// use foxpaw_habanero::prelude::*;
 ///
 /// let mut response = Response::new(Version::Http11, 200);
 ///
@@ -418,14 +388,12 @@ pub struct Response {
 }
 
 impl Response {
-    /// New
-    ///
     /// Create a new empty `Response` instance with the provided HTTP version
     /// and status code,
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let response = Response::new(Version::Http11, 200);
     /// ```
@@ -439,14 +407,12 @@ impl Response {
         }
     }
 
-    /// With Body
-    ///
     /// Fluently sets a body on this `Response`, consuming the original object
     /// and returning the updated instance.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let response = Response::new(Version::Http11, 200)
     ///     .with_body("Hello World");
@@ -458,14 +424,12 @@ impl Response {
         self.with_header("Content-Length", len.to_string())
     }
 
-    /// With Header
-    ///
     /// Fluently sets a header on this `Response`, consuming the original object
     /// and returning the updated instance.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let response = Response::new(Version::Http11, 200)
     ///     .with_header("Content-Type", "application/json");
@@ -476,8 +440,6 @@ impl Response {
         self
     }
 
-    /// With Html
-    ///
     /// Insert an HTML body into the `Response`. Automatically sets the
     /// Content-Type and Content-Length headers based on the provided body.
     ///
@@ -487,7 +449,7 @@ impl Response {
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let response = Response::new(Version::Http11, 200)
     ///     .with_html("<html></html>");
@@ -503,8 +465,6 @@ impl Response {
         self
     }
 
-    /// With Json
-    ///
     /// Insert a JSON body into the `Response`. Automatically sets the
     /// Content-Type and Content-Length headers based on the provided body.
     ///
@@ -514,7 +474,7 @@ impl Response {
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let response = Response::new(Version::Http11, 200)
     ///     .with_json("{value: 42}");
@@ -531,8 +491,6 @@ impl Response {
     }
 }
 
-/// `Scheme`
-///
 /// Enumerated HTTP Schemes supported by the crate.
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -544,8 +502,6 @@ pub enum Scheme {
 impl FromStr for Scheme {
     type Err = ParseError;
 
-    /// From Str
-    ///
     /// Try to convert from a `str` into a [`Scheme`]. Can be used explicitly
     /// or implicitly from `str::parse`. Note that while HTTP versions are
     /// expected to be uppercase, this method is case-insensitive.
@@ -556,7 +512,7 @@ impl FromStr for Scheme {
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::Scheme;
+    /// use foxpaw_habanero::prelude::*;
     /// use std::str::FromStr;
     ///
     /// let expected = Ok(Scheme::Http);
@@ -582,15 +538,11 @@ impl FromStr for Scheme {
     }
 }
 
-/// `Url`
-///
-/// A URL which is used by the [`Client`] as the endpoint to target. This can
-/// be created manually, however, the most common and straightforward approach
 /// would be to parse a URL from a str using the implemented `FromStr` trait.
 ///
 /// # Examples
 /// ```rust
-/// use foxpaw_habanero::{Url, Scheme};
+/// use foxpaw_habanero::prelude::*;
 /// use std::str::FromStr;
 ///
 /// let manual = Url {
@@ -622,8 +574,6 @@ pub struct Url {
 impl FromStr for Url {
     type Err = ParseError;
 
-    /// From Str
-    ///
     /// Try to convert from a `str` into a [`Url`]. Can be used explicitly or
     /// implicitly from `str::parse`.
     ///
@@ -638,7 +588,7 @@ impl FromStr for Url {
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::{Scheme, Url};
+    /// use foxpaw_habanero::prelude::*;
     /// use std::str::FromStr;
     ///
     /// let expected = Ok(Url {
@@ -699,8 +649,6 @@ impl FromStr for Url {
     }
 }
 
-/// `Version`
-///
 /// Enumerated HTTP Versions supported by the crate.
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -713,8 +661,6 @@ pub enum Version {
 impl FromStr for Version {
     type Err = ParseError;
 
-    /// From Str
-    ///
     /// Try to convert from a `str` into a [`Version`]. Can be used explicitly
     /// or implicitly from `str::parse`. Note that while HTTP versions are
     /// expected to be uppercase, this method is case-insensitive.
@@ -725,7 +671,7 @@ impl FromStr for Version {
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::Version;
+    /// use foxpaw_habanero::prelude::*;
     /// use std::str::FromStr;
     ///
     /// let expected = Ok(Version::Http11);

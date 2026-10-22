@@ -1,9 +1,7 @@
 use foxpaw_habanero::err::{HttpError, ServerError};
-use foxpaw_habanero::*;
+use foxpaw_habanero::prelude::*;
 use std::fs;
 
-/// Main
-///
 /// Main entry point of the application.
 fn main() -> Result<(), ServerError> {
     let server = Server::bind("127.0.0.1:7878")?;
@@ -16,8 +14,6 @@ fn main() -> Result<(), ServerError> {
     })
 }
 
-/// Get Page
-///
 /// Will obtain the html page for the specified uri. The application looks for
 /// the file inside the _`/public`_ directory, appending the html extension.
 /// If the uri request is for a directory, the index.html page is returned.

@@ -28,7 +28,7 @@ The server will now be able to serve web pages from the _`public/`_ directory, r
 ## Examples
 ### Start a Server
 ```rust, no_run
-use foxpaw_habanero::*;
+use foxpaw_habanero::prelude::*;
 use foxpaw_habanero::err::{HttpError, ServerError};
 
 fn main() -> Result<(), ServerError> {
@@ -47,7 +47,7 @@ fn main() -> Result<(), ServerError> {
 
 ### Send a Request to a Remote Host
 ```rust, no_run
-use foxpaw_habanero::*;
+use foxpaw_habanero::prelude::*;
 use foxpaw_habanero::err::ClientError;
 
 fn main() -> Result<(), ClientError> {

@@ -1,5 +1,3 @@
-//! Error
-//!
 //! This module probides the error types utilised by the crate, along with
 //! assistance implementations to convert between error types when relevant.
 //!
@@ -25,10 +23,6 @@ use std::error::Error;
 use std::fmt;
 use std::io::{self, ErrorKind};
 
-/// `ClientError`
-///
-/// The enumeration of available client error types. Each variant houses an
-/// inner context to be provided by the user of the error.
 ///
 /// # Examples
 /// ```rust
@@ -52,8 +46,6 @@ pub enum ClientError {
 }
 
 impl fmt::Display for ClientError {
-    /// Fmt
-    ///
     /// Format the `ClientError` for Display.
     ///
     /// # Error
@@ -110,8 +102,6 @@ impl fmt::Display for ClientError {
 impl Error for ClientError {}
 
 impl From<ConnectionError> for ClientError {
-    /// From
-    ///
     /// Convert from a [`ConnectionError`] into a `ClientError` by wrapping
     /// it in the `ClientError::Connection` variant.
     fn from(e: ConnectionError) -> Self {
@@ -120,8 +110,6 @@ impl From<ConnectionError> for ClientError {
 }
 
 impl From<ParseError> for ClientError {
-    /// From
-    ///
     /// Convert from a [`ParseError`] into a `ClientError` by wrapping
     /// it in the `ClientError::Parse` variant.
     fn from(e: ParseError) -> Self {
@@ -130,8 +118,6 @@ impl From<ParseError> for ClientError {
 }
 
 impl From<io::Error> for ClientError {
-    /// From
-    ///
     /// Convert from an `io::Error` into a `ClientError` by wrapping
     /// it in the relevant variant.
     fn from(e: io::Error) -> Self {
@@ -151,8 +137,6 @@ impl From<io::Error> for ClientError {
     }
 }
 
-/// `ConnectionError`
-///
 /// The enumeration of available connection error types. Each variant houses an
 /// inner `String` context to be provided by the user of the error.
 ///
@@ -177,8 +161,6 @@ pub enum ConnectionError {
 }
 
 impl fmt::Display for ConnectionError {
-    /// Fmt
-    ///
     /// Format the `ConnectionError` for Display.
     ///
     /// # Error
@@ -204,8 +186,6 @@ impl fmt::Display for ConnectionError {
 impl Error for ConnectionError {}
 
 impl From<ParseError> for ConnectionError {
-    /// From
-    ///
     /// Convert from a [`ParseError`] into a `ConnectionError` by wrapping it
     /// in the `ConnectionError::Parse` variant.
     fn from(e: ParseError) -> Self {
@@ -214,8 +194,6 @@ impl From<ParseError> for ConnectionError {
 }
 
 impl From<SerializeError> for ConnectionError {
-    /// From
-    ///
     /// Convert from a [`SerializeError`] into a `ConnectionError` by wrapping
     /// it in the `ConnectionError::Serialize` variant.
     fn from(e: SerializeError) -> Self {
@@ -223,14 +201,12 @@ impl From<SerializeError> for ConnectionError {
     }
 }
 
-/// `HttpError`
-///
 /// The enumeration of available server error types. Each variant represents
 /// a 4xx or 5xx HTTP response.
 ///
 /// # Examples
 /// ```rust
-/// use foxpaw_habanero::*;
+/// use foxpaw_habanero::prelude::*;
 /// use foxpaw_habanero::err::HttpError;
 ///
 /// fn check_version(req: Request) -> Result<Request, HttpError> {
@@ -281,8 +257,6 @@ pub enum HttpError {
 }
 
 impl fmt::Display for HttpError {
-    /// Fmt
-    ///
     /// Format the `HttpError` for Display.
     ///
     /// # Error
@@ -376,8 +350,6 @@ impl fmt::Display for HttpError {
 
 impl Error for HttpError {}
 
-/// `ParseError`
-///
 /// The enumeration of available parsing error types. Each variant houses an
 /// inner `String` context to be provided by the user of the error.
 ///
@@ -401,8 +373,6 @@ pub enum ParseError {
 }
 
 impl fmt::Display for ParseError {
-    /// Fmt
-    ///
     /// Format the `ParseError` for Display.
     ///
     /// # Error
@@ -433,8 +403,6 @@ impl fmt::Display for ParseError {
 
 impl Error for ParseError {}
 
-/// `SerializeError`
-///
 /// The enumeration of available serialization error types. Each variant houses
 /// an inner `String` context to be provided by the user of the error.
 ///
@@ -456,8 +424,6 @@ pub enum SerializeError {
 }
 
 impl fmt::Display for SerializeError {
-    /// Fmt
-    ///
     /// Format the `SerializeError` for Display.
     ///
     /// # Error
@@ -480,8 +446,6 @@ impl fmt::Display for SerializeError {
 
 impl Error for SerializeError {}
 
-/// `ServerError`
-///
 /// The enumeration of available server error types. Each variant houses an
 /// inner `String` context to be provided by the user of the error.
 ///
@@ -506,8 +470,6 @@ pub enum ServerError {
 }
 
 impl fmt::Display for ServerError {
-    /// Fmt
-    ///
     /// Format the `ServerError` for Display.
     ///
     /// # Error
@@ -541,8 +503,6 @@ impl fmt::Display for ServerError {
 impl Error for ServerError {}
 
 impl From<io::Error> for ServerError {
-    /// From
-    ///
     /// Convert from an `io::Error` into a `ServerError` by wrapping
     /// it in the relevant variant.
     fn from(e: io::Error) -> Self {

@@ -1,5 +1,3 @@
-//! Server
-//!
 //! This module houses the `Server` struct to run the HTTP server, along with
 //! the [`Handler`] trait it will run over.
 //!
@@ -13,7 +11,7 @@
 //!
 //! # Examples
 //! ```rust, no_run
-//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::prelude::*;
 //! use foxpaw_habanero::err::{HttpError, ServerError};
 //!
 //! fn start_server() -> Result<(), ServerError> {
@@ -41,13 +39,9 @@ use std::thread;
 #[allow(unused_imports)]
 use crate::router::Router;
 
-/// `Handler`
-///
 /// A handler handles a [`Request`], performs some sort of logic and generates
 /// a [`Response`] to be returned.
 pub trait Handler: Send + Sync {
-    /// Handle
-    ///
     /// Handle an incoming [`Request`] and return a [`Response`].
     ///
     /// # Errors
@@ -61,12 +55,11 @@ impl<F> Handler for F
 where
     F: Fn(Request) -> Result<Response, HttpError> + Send + Sync,
 {
-    /// Handle
+    /// Handle an incoming [`Request`] and return a [`Response`].
     ///
-    /// Handle an incoming [`Request`] and return a [`Response`]. This generic
-    /// implementation allows any method accepting a [`Request`] and returning
-    /// a [`Response`] to be used as a single [`Handler`] without using the
-    /// full [`Router`].
+    /// This generic implementation allows any method accepting a [`Request`]
+    /// and returning a [`Response`] to be used as a single [`Handler`] without
+    /// using the full [`Router`].
     ///
     /// # Errors
     /// This method can error for any reason by the implementing busines logic.
@@ -75,7 +68,7 @@ where
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::{HttpError, ServerError};
     ///
     /// fn start_server() -> Result<(), ServerError> {
@@ -95,13 +88,11 @@ where
     }
 }
 
-/// `Server`
-///
 /// The `Server` to bind to an address and handle incoming HTTP requests to it.
 ///
 /// # Examples
 /// ```rust, no_run
-/// use foxpaw_habanero::*;
+/// use foxpaw_habanero::prelude::*;
 /// use foxpaw_habanero::err::{HttpError, ServerError};
 ///
 /// fn start_server() -> Result<(), ServerError> {
@@ -121,8 +112,6 @@ pub struct Server {
 }
 
 impl Server {
-    /// Bind
-    ///
     /// Bind to the provided address, ready to accept incoming request.
     ///
     /// # Errors
@@ -131,7 +120,7 @@ impl Server {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ServerError;
     ///
     /// fn start_server() -> Result<(), ServerError> {
@@ -144,8 +133,6 @@ impl Server {
         Ok(Self { listener })
     }
 
-    /// Run
-    ///
     /// Run the server, using the provided handler to process each incoming
     /// [`Request`], and sending off an outgoing [`Response`].
     ///
@@ -156,7 +143,7 @@ impl Server {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::{HttpError, ServerError};
     ///
     /// fn start_server() -> Result<(), ServerError> {

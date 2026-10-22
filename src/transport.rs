@@ -1,5 +1,3 @@
-//! Transport
-//!
 //! This module houses the transport data types. These types wrap and handle
 //! any connection to an external source (e.g. TCP, TLS or local connection for
 //! testing).
@@ -31,8 +29,6 @@ pub use std::io::{Read, Write};
 pub use std::net::{Shutdown, SocketAddr, TcpStream};
 pub use std::time::Duration;
 
-/// `Tcp`
-///
 /// Transport implementation over a TCP connection. This implementation only
 /// supports plain text transportation of data and is unencrypted (e.g. http
 /// connections).
@@ -66,8 +62,6 @@ pub struct Tcp {
 }
 
 impl Tcp {
-    /// New
-    ///
     /// Create a new `Tcp` instance over the provided `TcpStream`.
     ///
     /// # Examples
@@ -87,10 +81,6 @@ impl Tcp {
 }
 
 impl Read for Tcp {
-    /// Read
-    ///
-    /// Read bytes into the provided buffer, returning the number of bytes read
-    /// on success.
     ///
     /// # Errors
     /// This method will return an `std::io::Error` in one of two
@@ -118,8 +108,6 @@ impl Read for Tcp {
 }
 
 impl Transport for Tcp {
-    /// Set Read Timeout
-    ///
     /// Set the read timeout for this `Tcp`  by the specified duration. If None
     /// is passed as the duration the Transport will block indefinitely.
     ///
@@ -141,8 +129,6 @@ impl Transport for Tcp {
         self.inner.set_read_timeout(duration)
     }
 
-    /// Set Write Timeout
-    ///
     /// Set the write timeout for this `Tcp` by the specified duration. If None
     /// is passed as the duration the Transport will block indefinitely.
     ///
@@ -164,8 +150,6 @@ impl Transport for Tcp {
         self.inner.set_write_timeout(duration)
     }
 
-    /// Peer Addr
-    ///
     /// Obtain the peer address this `Tcp` is connected to.
     ///
     /// # Errors
@@ -186,8 +170,6 @@ impl Transport for Tcp {
         self.inner.peer_addr()
     }
 
-    /// Shutdown
-    ///
     /// Shut down this `Tcp` as specified.
     ///
     /// # Errors
@@ -211,8 +193,6 @@ impl Transport for Tcp {
 }
 
 impl Write for Tcp {
-    /// Write
-    ///
     /// Write the buffer of provided bytes to the inner stream. This will
     /// return the number of bytes successfully written.
     ///
@@ -237,8 +217,6 @@ impl Write for Tcp {
         self.inner.write(buf)
     }
 
-    /// Flush
-    ///
     /// Flush the output stream, ensuring any buffered but not yet sent content
     /// reaches the destination.
     ///
@@ -264,13 +242,9 @@ impl Write for Tcp {
     }
 }
 
-/// Transport
-///
 /// Abstracts away reading, writing and other socket related activity so that
 /// protocols can run over raw TCP, TLS or a mocked type for testing.
 pub trait Transport: Read + Write + Send {
-    /// Set Read Timeout
-    ///
     /// Set the read timeout for this `Transport` type by the specified
     /// duration.
     ///
@@ -279,8 +253,6 @@ pub trait Transport: Read + Write + Send {
     /// set.
     fn set_read_timeout(&mut self, duration: Option<Duration>) -> io::Result<()>;
 
-    /// Set Write Timeout
-    ///
     /// Set the write timeout for this `Transport` type by the specified
     /// duration.
     ///
@@ -289,16 +261,12 @@ pub trait Transport: Read + Write + Send {
     /// set.
     fn set_write_timeout(&mut self, duration: Option<Duration>) -> io::Result<()>;
 
-    /// Peer Addr
-    ///
     /// Obtain the peer address the `Transport` is connected to.
     ///
     /// # Errors
     /// Will return an `std::io::Error` unable to obtain the peer address.
     fn peer_addr(&self) -> io::Result<SocketAddr>;
 
-    /// Shutdown
-    ///
     /// Shut down this `Transport` as specified.
     ///
     /// # Errors

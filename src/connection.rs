@@ -1,5 +1,3 @@
-//! Connection
-//!
 //! This module houses the connection types used by the [`Client`] and
 //! [`Server`] to send and receive requests over a [`Transport`] type. These
 //! types are responsible for doing the logic required for the different HTTP
@@ -22,7 +20,7 @@
 //! # Examples
 //! ## Using an [`Http1Client`]
 //! ```rust, no_run
-//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::prelude::*;
 //! use foxpaw_habanero::connection::{Client, Http1Client};
 //! use foxpaw_habanero::transport::Tcp;
 //! use std::net::TcpStream;
@@ -39,7 +37,7 @@
 //! ```
 //! ## Using an [`Http1Server`]
 //! ```rust, no_run
-//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::prelude::*;
 //! use foxpaw_habanero::connection::{Server, Http1Server};
 //! use foxpaw_habanero::transport::Tcp;
 //! use std::net::TcpStream;
@@ -66,13 +64,9 @@ use crate::err::{ConnectionError, ParseError};
 use crate::transport::Transport;
 use std::io::BufReader;
 
-/// `Client`
-///
 /// The `Client` trait is responsible for defining the methods used by the
 /// connection tied to a [`Client`].
 pub trait Client {
-    /// Send Request
-    ///
     /// Send a [`Request`] to a remote host, receiving a `Response`.
     ///
     /// # Errors
@@ -84,8 +78,6 @@ pub trait Client {
     fn send_request(&mut self, request: Request) -> Result<Response, ConnectionError>;
 }
 
-/// `Http1Client`
-///
 /// The `Http1Client` is a connection responsible for handling client
 /// connections to a remote host over a generic [`Transport`] type `T`.
 ///
@@ -94,7 +86,7 @@ pub trait Client {
 ///
 /// # Examples
 /// ```rust, no_run
-/// use foxpaw_habanero::*;
+/// use foxpaw_habanero::prelude::*;
 /// use foxpaw_habanero::connection::{Client, Http1Client};
 /// use foxpaw_habanero::transport::Tcp;
 /// use std::net::TcpStream;
@@ -118,8 +110,6 @@ impl<T> Http1Client<T>
 where
     T: Transport,
 {
-    /// New
-    ///
     /// Create a new `Http1Client` connection over the provided [`Transport`].
     ///
     /// # Examples
@@ -144,10 +134,8 @@ where
 
 impl<T> Client for Http1Client<T>
 where
-    T: Transport + std::fmt::Debug,
+    T: Transport,
 {
-    /// Send Request
-    ///
     /// Send a [`Request`] to a remote host, receiving a `Response`.
     ///
     /// # Errors
@@ -159,7 +147,7 @@ where
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::connection::{Client, Http1Client};
     /// use foxpaw_habanero::transport::Tcp;
     /// use std::net::TcpStream;
@@ -182,8 +170,6 @@ where
     }
 }
 
-/// `Http1Server`
-///
 /// The `Http1Server` is a connection responsible for handling server
 /// connections to a remote host over a generic [`Transport`] type `T`.
 ///
@@ -192,7 +178,7 @@ where
 ///
 /// # Examples
 /// ```rust, no_run
-/// use foxpaw_habanero::*;
+/// use foxpaw_habanero::prelude::*;
 /// use foxpaw_habanero::connection::{Server, Http1Server};
 /// use foxpaw_habanero::transport::Tcp;
 /// use std::net::TcpStream;
@@ -222,8 +208,6 @@ impl<T> Http1Server<T>
 where
     T: Transport,
 {
-    /// New
-    ///
     /// Create a new `Http1Server` connection over the provided [`Transport`].
     ///
     /// # Examples
@@ -253,8 +237,6 @@ impl<T> Server for Http1Server<T>
 where
     T: Transport,
 {
-    /// Next Request
-    ///
     /// Obtain the next [`Request`] waiting on this `ServerConnection`. Will
     /// return either Ok(Some(Request)) if a request was obtained or Ok(None)
     /// if the operation was successful but no request was waiting. Will also
@@ -296,8 +278,6 @@ where
         }
     }
 
-    /// Send Response
-    ///
     /// Serialize and return the provided [`Response`] back over the
     /// connection.
     ///
@@ -307,7 +287,7 @@ where
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::connection::{Http1Server, Server};
     /// use foxpaw_habanero::transport::Tcp;
     /// use std::net::TcpStream;
@@ -333,8 +313,6 @@ where
         )?)
     }
 
-    /// Is Persistent
-    ///
     /// Determine if this connection is kept alive and handles multiple
     /// transmissions. Currently persistent connections are not supported.
     ///
@@ -358,13 +336,9 @@ where
     }
 }
 
-/// `Server`
-///
 /// The `Server` trait is responsible for defining the methods used by the
 /// connection tied to a [`Server`].
 pub trait Server {
-    /// Next Request
-    ///
     /// Obtain the next [`Request`] waiting on this `ServerConnection`. Will
     /// return either Ok(Some(Request)) if a request was obtained or Ok(None)
     /// if the operation was successful but no request was waiting.
@@ -374,8 +348,6 @@ pub trait Server {
     /// with the parsing of the incoming HTTP request.
     fn next_request(&mut self) -> Result<Option<Request>, ConnectionError>;
 
-    /// Send Response
-    ///
     /// Serialize and return the provided [`Response`] back over the
     /// connection.
     ///
@@ -384,8 +356,6 @@ pub trait Server {
     /// error with the serialization of the provided [`Response`];
     fn send_response(&mut self, response: Response) -> Result<(), ConnectionError>;
 
-    /// Is Persistent
-    ///
     /// Determine if this connection is kept alive and handles multiple
     /// transmissions.
     fn is_persistent(&self) -> bool;

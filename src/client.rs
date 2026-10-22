@@ -1,5 +1,3 @@
-//! Client
-//!
 //! The client module is responsible for housing types that instigate outgoing
 //! connections and requests to remote hosts.
 //!
@@ -10,7 +8,7 @@
 //! # Examples
 //! ## Quick Requests
 //! ```rust, no_run
-//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::prelude::*;
 //! use foxpaw_habanero::err::ClientError;
 //!
 //! fn send_request() -> Result<(), ClientError> {
@@ -27,7 +25,7 @@
 //!
 //! ## Dispatch a more complex request
 //! ```rust, no_run
-//! use foxpaw_habanero::*;
+//! use foxpaw_habanero::prelude::*;
 //! use foxpaw_habanero::err::ClientError;
 //!
 //! fn send_request() -> Result<(), ClientError> {
@@ -45,8 +43,6 @@ use crate::err::ClientError;
 use crate::transport::Tcp;
 use std::net::TcpStream;
 
-/// `Client`
-///
 /// Used to sent HTTP requests to a remote host. Provides a generic dispatch
 /// method for sending a prebuilt [`Request`] and convenience methods for each
 /// HTTP method for simpler requests.
@@ -54,7 +50,7 @@ use std::net::TcpStream;
 /// # Examples
 /// ## Quick Requests
 /// ```rust, no_run
-/// use foxpaw_habanero::*;
+/// use foxpaw_habanero::prelude::*;
 /// use foxpaw_habanero::err::ClientError;
 ///
 /// fn send_request() -> Result<(), ClientError> {
@@ -71,7 +67,7 @@ use std::net::TcpStream;
 ///
 /// ## Dispatch a more complex request
 /// ```rust, no_run
-/// use foxpaw_habanero::*;
+/// use foxpaw_habanero::prelude::*;
 /// use foxpaw_habanero::err::ClientError;
 ///
 /// fn send_request() -> Result<(), ClientError> {
@@ -86,13 +82,11 @@ use std::net::TcpStream;
 pub struct Client;
 
 impl Client {
-    /// New
-    ///
     /// Create a new `Client` to send HTTP requests.
     ///
     /// # Examples
     /// ```rust
-    /// use foxpaw_habanero::Client;
+    /// use foxpaw_habanero::prelude::*;
     ///
     /// let client = Client::new();
     /// ```
@@ -101,8 +95,6 @@ impl Client {
         Self
     }
 
-    /// Connect
-    ///
     /// Send a connect request to the desired remote.
     ///
     /// # Errors
@@ -110,7 +102,7 @@ impl Client {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ClientError;
     ///
     /// fn send_request() -> Result<(), ClientError> {
@@ -124,8 +116,6 @@ impl Client {
         self.dispatch(url, req)
     }
 
-    /// Delete
-    ///
     /// Send a delete request to the desired remote.
     ///
     /// # Errors
@@ -133,7 +123,7 @@ impl Client {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ClientError;
     ///
     /// fn send_request() -> Result<(), ClientError> {
@@ -147,10 +137,6 @@ impl Client {
         self.dispatch(url, req)
     }
 
-    /// Dispatch
-    ///
-    /// Dispatch a [`Request`] to the specified remote.
-    ///
     /// # Errors
     /// This will error if the connection to the remote host fails, or if the
     /// [`Request`] serialization or [`Response`] parsing fails by the
@@ -158,7 +144,7 @@ impl Client {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ClientError;
     ///
     /// fn send_request() -> Result<(), ClientError> {
@@ -178,8 +164,6 @@ impl Client {
         Ok(Http1Client::new(transport).send_request(req)?)
     }
 
-    /// Get
-    ///
     /// Send a get request to the desired remote.
     ///
     /// # Errors
@@ -187,7 +171,7 @@ impl Client {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ClientError;
     ///
     /// fn send_request() -> Result<(), ClientError> {
@@ -201,8 +185,6 @@ impl Client {
         self.dispatch(url, req)
     }
 
-    /// Head
-    ///
     /// Send a head request to the desired remote.
     ///
     /// # Errors
@@ -210,7 +192,7 @@ impl Client {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ClientError;
     ///
     /// fn send_request() -> Result<(), ClientError> {
@@ -224,8 +206,6 @@ impl Client {
         self.dispatch(url, req)
     }
 
-    /// Options
-    ///
     /// Send an options request to the desired remote.
     ///
     /// # Errors
@@ -233,7 +213,7 @@ impl Client {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ClientError;
     ///
     /// fn send_request() -> Result<(), ClientError> {
@@ -247,8 +227,6 @@ impl Client {
         self.dispatch(url, req)
     }
 
-    /// Patch
-    ///
     /// Send a patch request to the desired remote.
     ///
     /// # Errors
@@ -256,7 +234,7 @@ impl Client {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ClientError;
     ///
     /// fn send_request() -> Result<(), ClientError> {
@@ -270,8 +248,6 @@ impl Client {
         self.dispatch(url, req)
     }
 
-    /// Post
-    ///
     /// Send a post request to the desired remote.
     ///
     /// # Errors
@@ -279,7 +255,7 @@ impl Client {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ClientError;
     ///
     /// fn send_request() -> Result<(), ClientError> {
@@ -293,8 +269,6 @@ impl Client {
         self.dispatch(url, req)
     }
 
-    /// Put
-    ///
     /// Send a put request to the desired remote.
     ///
     /// # Errors
@@ -302,7 +276,7 @@ impl Client {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ClientError;
     ///
     /// fn send_request() -> Result<(), ClientError> {
@@ -316,8 +290,6 @@ impl Client {
         self.dispatch(url, req)
     }
 
-    /// Query
-    ///
     /// Send a query request to the desired remote.
     ///
     /// # Errors
@@ -325,7 +297,7 @@ impl Client {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ClientError;
     ///
     /// fn send_request() -> Result<(), ClientError> {
@@ -339,8 +311,6 @@ impl Client {
         self.dispatch(url, req)
     }
 
-    /// Trace
-    ///
     /// Send a trace request to the desired remote.
     ///
     /// # Errors
@@ -348,7 +318,7 @@ impl Client {
     ///
     /// # Examples
     /// ```rust, no_run
-    /// use foxpaw_habanero::*;
+    /// use foxpaw_habanero::prelude::*;
     /// use foxpaw_habanero::err::ClientError;
     ///
     /// fn send_request() -> Result<(), ClientError> {
