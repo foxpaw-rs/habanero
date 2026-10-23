@@ -57,11 +57,7 @@
 //! }
 //! ```
 
-#![deny(
-    clippy::all,
-    //clippy::cargo, Todo: Cargo.toml
-    clippy::pedantic,
-)]
+#![deny(clippy::all, clippy::cargo, clippy::pedantic)]
 
 pub mod client;
 pub mod codec;

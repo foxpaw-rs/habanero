@@ -1,7 +1,24 @@
 # Habanero Roadmap
 
-## Version 0.1
+## Version 0.2
+### Todo
+- [ ] Cryptography
+: Implement cryptographic primitives to begin to support HTTPS. Initially, support ChaCha20-Poly1305 as a cipher, SHA256 as a hash function and ECDHE for secure key generation and signature verification.
+- [ ] Certificate
+: Implement a certificate parser to verify the ASN.1 SSL certificate and verify it against a certificate authority.
+- [ ] TLS Handshake
+: Implement the TLS handshake protocol to initiate a secure transmission.
+- [ ] TLS Records
+: Implement TLS record chunking, and additionally, create a `transport/Tls` to use secure, encyrpted communication for the `Client` and `Server`
+- [ ] Enhanced Cryptography
+: Additionally support AES-GCM as a cipher and SHA512 as a hash function and support the selection during the handshake process.
 
+### Doing
+
+### Done
+
+
+## Version 0.1
 ### Done
 - [x] Binary
 : Create a binary server application which serves html pages in the _`public/`_ directory and it's children.
