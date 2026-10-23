@@ -11,7 +11,7 @@ Execute the _`foxpaw-habanero`_ application to run the server. Once your server 
 
 All the following references are from your current working directory. It is recommended to place the application executable as a sibling to the _`public/`_ directory the application searches for.
 my-project/
-```
+```text
 my-project/
 ├── foxpaw-habanero
 └── public/

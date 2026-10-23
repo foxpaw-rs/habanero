@@ -3,16 +3,16 @@
 //! client and server without any complex boilerplate or networking required.
 //!
 //! The Habanero ecosystem leverages two main types to connect to the outside
-//! world, the [`Client`] and [`Server`]. Both of these provide simple 
+//! world, the [`Client`] and [`Server`]. Both of these provide simple
 //! interaction methods for quick actions, and generic methods for more complex
 //! situations.
 //!
-//! See the _`docs/`_ directory for additional documentation and usage 
+//! See the _`docs/`_ directory for additional documentation and usage
 //! examples.
 //!
 //! ## Architecture
 //! The basic philosophy behind Habanero is to make HTTP interaction as simple
-//! as possible, with the ability to perform complex tasks if required. The 
+//! as possible, with the ability to perform complex tasks if required. The
 //! [`Client`] and [`Server`] types are the entry point to interacting with the
 //! crate.
 //!
@@ -30,7 +30,7 @@
 //! ```rust, no_run
 //! use foxpaw_habanero::prelude::*;
 //! use foxpaw_habanero::err::{HttpError, ServerError};
-//! 
+//!
 //! fn main() -> Result<(), ServerError> {
 //!     let server = Server::bind("127.0.0.1:7878")?;
 //!     server.run(|req: Request| {
@@ -44,12 +44,12 @@
 //!     Ok(())
 //! }
 //! ```
-//! 
+//!
 //! ### Send a Request to a Remote Host
 //! ```rust, no_run
 //! use foxpaw_habanero::prelude::*;
 //! use foxpaw_habanero::err::ClientError;
-//! 
+//!
 //! fn main() -> Result<(), ClientError> {
 //!     let client = Client::new();
 //!     let respone = client.get(&"127.0.0.1:7878".parse()?)?;
@@ -84,4 +84,7 @@ mod mock;
 
 #[cfg(doctest)]
 #[doc = include_str!("../README.md")]
+#[doc = include_str!("../docs/application.md")]
+#[doc = include_str!("../docs/crate.md")]
+#[doc = include_str!("../docs/index.md")]
 struct ReadmeDoctests;

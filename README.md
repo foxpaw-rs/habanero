@@ -52,7 +52,7 @@ use foxpaw_habanero::err::ClientError;
 
 fn main() -> Result<(), ClientError> {
     let client = Client::new();
-    let respone = client.get(&"127.0.0.1:7878".parse()?)?;
+    let respone = client.get(&"http://127.0.0.1:7878".parse()?)?;
     Ok(())
 }
 ```
