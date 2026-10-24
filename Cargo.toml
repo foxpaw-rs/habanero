@@ -2,5 +2,17 @@
 name = "foxpaw-habanero"
 version = "0.1.0"
 edition = "2024"
+license-file = "LICENSE.md"
+readme = "README.md"
 
-[dependencies]
+description = "A lightweight, custom, multi-threaded HTTP client/server implementation without async."
+repository = "https://github.com/foxpaw-rs/habanero/"
+
+keywords = ["http", "client", "server", "multi-threading"]
+categories = [
+	"network-programming",
+	"web-programming",
+	"web-programming::http-client",
+    "web-programming::http-server",
+    "concurrency"
+]
